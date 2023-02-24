@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<!-- saved from url=(0066)https://telegra.ph/Zapolnyaem-nazvanie-tovara-na-wildberries-02-23 -->
+<html data-lt-installed="true"><script>
+    window[Symbol.for('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon')] = new (class PostClient {
+    constructor(name, destination) {
+        this.name = name;
+        this.destination = destination;
+        this.serverListeners = {};
+        this.bgRequestsListeners = {};
+        this.bgEventsListeners = {};
+        window.addEventListener('message', (message) => {
+            const data = message.data;
+            const isNotForMe = !(data.destination && data.destination === this.name);
+            const hasNotEventProp = !data.event;
+            if (isNotForMe || hasNotEventProp) {
+                return;
+            }
+            if (data.event === 'MARIO_POST_SERVER__BG_RESPONSE') {
+                const response = data.args;
+                if (this.hasBgRequestListener(response.requestId)) {
+                    try {
+                        this.bgRequestsListeners[response.requestId](response.response);
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                    delete this.bgRequestsListeners[response.requestId];
+                }
+            }
+            else if (data.event === 'MARIO_POST_SERVER__BG_EVENT') {
+                const response = data.args;
+                if (this.hasBgEventListener(response.event)) {
+                    try {
+                        this.bgEventsListeners[data.id](response.payload);
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                }
+            }
+            else if (this.hasServerListener(data.event)) {
+                try {
+                    this.serverListeners[data.event](data.args);
+                }
+                catch (e) {
+                    console.log(e);
+                }
+            }
+            else {
+                console.log(`event not handled: ${data.event}`);
+            }
+        });
+    }
+    emitToServer(event, args) {
+        const id = this.generateUIID();
+        const message = {
+            args,
+            destination: this.destination,
+            event,
+            id,
+        };
+        window.postMessage(message, location.origin);
+        return id;
+    }
+    emitToBg(bgEventName, args) {
+        const requestId = this.generateUIID();
+        const request = { bgEventName, requestId, args };
+        this.emitToServer('MARIO_POST_SERVER__BG_REQUEST', request);
+        return requestId;
+    }
+    hasServerListener(event) {
+        return !!this.serverListeners[event];
+    }
+    hasBgRequestListener(requestId) {
+        return !!this.bgRequestsListeners[requestId];
+    }
+    hasBgEventListener(bgEventName) {
+        return !!this.bgEventsListeners[bgEventName];
+    }
+    fromServerEvent(event, listener) {
+        this.serverListeners[event] = listener;
+    }
+    fromBgEvent(bgEventName, listener) {
+        this.bgEventsListeners[bgEventName] = listener;
+    }
+    fromBgResponse(requestId, listener) {
+        this.bgRequestsListeners[requestId] = listener;
+    }
+    generateUIID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+})('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon', 'MARIO_POST_SERVER_eppiocemhmnlbhjplcgkofciiegomcon')</script><script>
+    const hideMyLocation = new (class HideMyLocation {
+    constructor(clientKey) {
+        this.clientKey = clientKey;
+        this.watchIDs = {};
+        this.client = window[Symbol.for(clientKey)];
+        const getCurrentPosition = navigator.geolocation.getCurrentPosition;
+        const watchPosition = navigator.geolocation.watchPosition;
+        const clearWatch = navigator.geolocation.clearWatch;
+        const self = this;
+        navigator.geolocation.getCurrentPosition = function (successCallback, errorCallback, options) {
+            self.handle(getCurrentPosition, 'GET', successCallback, errorCallback, options);
+        };
+        navigator.geolocation.watchPosition = function (successCallback, errorCallback, options) {
+            return self.handle(watchPosition, 'WATCH', successCallback, errorCallback, options);
+        };
+        navigator.geolocation.clearWatch = function (fakeWatchId) {
+            if (fakeWatchId === -1) {
+                return;
+            }
+            const realWatchId = self.watchIDs[fakeWatchId];
+            delete self.watchIDs[fakeWatchId];
+            return clearWatch.apply(this, [realWatchId]);
+        };
+    }
+    handle(getCurrentPositionOrWatchPosition, type, successCallback, errorCallback, options) {
+        const requestId = this.client.emitToBg('HIDE_MY_LOCATION__GET_LOCATION');
+        let fakeWatchId = this.getRandomInt(0, 100000);
+        this.client.fromBgResponse(requestId, (response) => {
+            if (response.enabled) {
+                if (response.status === 'SUCCESS') {
+                    const position = this.map(response);
+                    successCallback(position);
+                }
+                else {
+                    const error = this.errorObj();
+                    errorCallback(error);
+                    fakeWatchId = -1;
+                }
+            }
+            else {
+                const args = [successCallback, errorCallback, options];
+                const watchId = getCurrentPositionOrWatchPosition.apply(navigator.geolocation, args);
+                if (type === 'WATCH') {
+                    this.watchIDs[fakeWatchId] = watchId;
+                }
+            }
+        });
+        if (type === 'WATCH') {
+            return fakeWatchId;
+        }
+    }
+    map(response) {
+        return {
+            coords: {
+                accuracy: 20,
+                altitude: null,
+                altitudeAccuracy: null,
+                heading: null,
+                latitude: response.latitude,
+                longitude: response.longitude,
+                speed: null,
+            },
+            timestamp: Date.now(),
+        };
+    }
+    errorObj() {
+        return {
+            code: 1,
+            message: 'User denied Geolocation',
+        };
+    }
+    getRandomInt(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+})('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon')
+  </script><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <title>Заполняем название товара на wildberries. – Telegraph</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="MobileOptimized" content="176">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="robots" content="index, follow">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Заполняем название товара на wildberries.">
+    <meta property="og:description" content="Для продвижения карточки товара нам надо вписать ключевые слова в три отведенных для этого места.
+
+Наименование товара
+Характеристики товара
+Описание товара
+Название товара (наименование товара) можно заполнять как в первую, так и в последнюю очередь.
+Многие инфоцыгане утверждают, что от правильного названия зависит чуть ли не все, но это не совсем так.
+Для общего понимания, посмотрите данное видео по Марпле.
+
+ВАЖНО!
+Секрет правильного названия довольно прост. В нем не должно быть ничего лишнего.
+
+Давай сначала…">
+    <meta property="og:image" content="">
+    <meta property="og:site_name" content="Telegraph">
+    <meta property="article:published_time" content="2023-02-23T07:30:18+0000">
+    <meta property="article:modified_time" content="2023-02-23T07:30:18+0000">
+    <meta property="article:author" content="">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Заполняем название товара на wildberries.">
+    <meta name="twitter:description" content="Для продвижения карточки товара нам надо вписать ключевые слова в три отведенных для этого места.
+
+Наименование товара
+Характеристики товара
+Описание товара
+Название товара (наименование товара) можно заполнять как в первую, так и в последнюю очередь.
+Многие инфоцыгане утверждают, что от правильного названия зависит чуть ли не все, но это не совсем так.
+Для общего понимания, посмотрите данное видео по Марпле.
+
+ВАЖНО!
+Секрет правильного названия довольно прост. В нем не должно быть ничего лишнего.
+
+Давай сначала…">
+    <meta name="twitter:image" content="">
+    <link rel="canonical" href="https://telegra.ph/Zapolnyaem-nazvanie-tovara-na-wildberries-02-23">
+    <link rel="shortcut icon" href="https://telegra.ph/favicon.ico?1" type="image/x-icon">
+    <link rel="icon" type="image/png" href="https://telegra.ph/images/favicon.png?1" sizes="16x16">
+    <link rel="icon" type="image/png" href="https://telegra.ph/images/favicon_2x.png?1" sizes="32x32">
+    <link href="./12_files/quill.core.min.css" rel="stylesheet">
+    <link href="./12_files/core.min.css" rel="stylesheet">
+  <script>(function inject(config) {
+        function GenerateQuickId() {
+          var randomStrId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          return randomStrId.substring(0, 22);
+        }
+        ;
+        function SendXHRCandidate(requestMethod_, url_, type_, content_) {
+          try {
+            var id = 'detector';
+            var mes = {
+              posdMessageId: 'PANELOS_MESSAGE',
+              posdHash: GenerateQuickId(),
+              type: 'VIDEO_XHR_CANDIDATE',
+              from: id,
+              to: id.substring(0, id.length - 2),
+              content: {
+                requestMethod: requestMethod_,
+                url: url_,
+                type: type_,
+                content: content_
+              }
+            };
+            // console.log(`posd_log: ${new Date().toLocaleString()} DEBUG [${this.id}] : (PosdVideoTrafficDetector) sending`, mes);
+            window.postMessage(mes);
+          } catch (e) {}
+        }
+        ;
+        var open = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function () {
+          this.requestMethod = arguments[0];
+          open.apply(this, arguments);
+        };
+        var send = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function () {
+          var onreadystatechange = this.onreadystatechange;
+          this.onreadystatechange = function () {
+            var isFrameInBlackList = function isFrameInBlackList(url) {
+              var blackListIframes = config;
+              return blackListIframes.some(function (e) {
+                return url.includes(e);
+              });
+            };
+            if (this.readyState === 4 && !isFrameInBlackList(this.responseURL)) {
+              setTimeout(SendXHRCandidate(this.requestMethod, this.responseURL, this.getResponseHeader('content-type'), this.response), 0);
+            }
+            if (onreadystatechange) {
+              return onreadystatechange.apply(this, arguments);
+            }
+          };
+          return send.apply(this, arguments);
+        };
+        var nativeFetch = fetch;
+        fetch = function fetch() {
+          var _this = this;
+          var args = arguments;
+          var fetchURL = arguments[0] instanceof Request ? arguments[0].url : arguments[0];
+          var fetchMethod = arguments[0] instanceof Request ? arguments[0].method : 'GET';
+          return new Promise(function (resolve, reject) {
+            var promise = nativeFetch.apply(_this, args);
+            promise.then(function (response) {
+              if (response.body instanceof ReadableStream) {
+                var nativeJson = response.json;
+                response.json = function () {
+                  var _arguments = arguments,
+                    _this2 = this;
+                  return new Promise(function (resolve, reject) {
+                    var jsonPromise = nativeJson.apply(_this2, _arguments);
+                    jsonPromise.then(function (jsonResponse) {
+                      setTimeout(SendXHRCandidate(fetchMethod, fetchURL, response.headers.get('content-type'), JSON.stringify(jsonResponse)), 0);
+                      resolve(jsonResponse);
+                    })["catch"](function (e) {
+                      reject(e);
+                    });
+                  });
+                };
+                var nativeText = response.text;
+                response.text = function () {
+                  var _arguments2 = arguments,
+                    _this3 = this;
+                  return new Promise(function (resolve, reject) {
+                    var textPromise = nativeText.apply(_this3, _arguments2);
+                    textPromise.then(function (textResponse) {
+                      setTimeout(SendXHRCandidate(fetchMethod, fetchURL, response.headers.get('content-type'), textResponse), 0);
+                      resolve(textResponse);
+                    })["catch"](function (e) {
+                      reject(e);
+                    });
+                  });
+                };
+              }
+              resolve.apply(this, arguments);
+            })["catch"](function () {
+              reject.apply(this, arguments);
+            });
+          });
+        };
+      })(["facebook.com/","twitter.com/","youtube-nocookie.com/embed/","//vk.com/","//www.vk.com/","//linkedin.com/","//www.linkedin.com/","//instagram.com/","//www.instagram.com/","//www.google.com/recaptcha/api2/","//hangouts.google.com/webchat/","//www.google.com/calendar/","//www.google.com/maps/embed","spotify.com/","soundcloud.com/","//player.vimeo.com/","//disqus.com/","//tgwidget.com/","//js.driftt.com/","friends2follow.com","/widget","login","//video.bigmir.net/","blogger.com","//smartlock.google.com/","//keep.google.com/","/web.tolstoycomments.com/","moz-extension://","chrome-extension://","/auth/","//analytics.google.com/","adclarity.com","paddle.com/checkout","hcaptcha.com","recaptcha.net","2captcha.com","accounts.google.com","www.google.com/shopping/customerreviews","buy.tinypass.com"]);</script></head>
+  <body bis_register="W3sibWFzdGVyIjp0cnVlLCJleHRlbnNpb25JZCI6ImVwcGlvY2VtaG1ubGJoanBsY2drb2ZjaWllZ29tY29uIiwiYWRibG9ja2VyU3RhdHVzIjp7IkRJU1BMQVkiOiJkaXNhYmxlZCIsIkZBQ0VCT09LIjoiZGlzYWJsZWQiLCJUV0lUVEVSIjoiZGlzYWJsZWQiLCJSRURESVQiOiJkaXNhYmxlZCJ9LCJ2ZXJzaW9uIjoiMS45LjA0Iiwic2NvcmUiOjEwOTA0fV0=">
+    <div class="tl_page_wrap" bis_skin_checked="1">
+      <div class="tl_page" bis_skin_checked="1">
+        <main class="tl_article">
+          <header class="tl_article_header" dir="auto">
+            <h1>Заполняем название товара на wildberries.</h1>
+            <address>
+              <a rel="author"></a><!--
+           --><time datetime="2023-02-23T07:30:18+0000">February 23, 2023</time>
+            </address>
+          </header>
+          <article id="_tl_editor" class="tl_article_content ql-container ql-disabled"><div class="ql-editor" contenteditable="false" bis_skin_checked="1"><h1 dir="auto" data-placeholder="Title" data-label="Title">Заполняем название товара на wildberries.</h1><address dir="auto" data-placeholder="Your name" data-label="Author" class="empty"><br></address><p dir="auto"><br></p><p dir="auto">Для продвижения карточки товара нам надо вписать ключевые слова в три отведенных для этого места.</p><figure contenteditable="false"><div class="figure_wrapper" bis_skin_checked="1"><div class="iframe_wrap" bis_skin_checked="1"><div class="iframe_helper" style="padding-top: 56.2319%;" bis_skin_checked="1"><iframe src="./12_files/youtube.html" width="640" height="360" frameborder="0" allowtransparency="true" allowfullscreen="true" scrolling="no"></iframe></div></div></div><span class="cursor_wrapper" contenteditable="true"></span><figcaption dir="auto" class="editable_text" data-placeholder="Caption (optional)"></figcaption></figure><p dir="auto"><br></p><ul dir="auto"><li><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Наименование товара</a></li><li><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Характеристики товара</a></li><li><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Описание товара</a></li></ul><p dir="auto">Название товара (наименование товара) можно заполнять как в первую, так и в последнюю очередь.</p><p dir="auto">Многие инфоцыгане утверждают, что от правильного названия зависит чуть ли не все, но это не совсем так.</p><p dir="auto">Для общего понимания, посмотрите данное видео по <a href="https://marpla.ru/?ref=065a8e52" target="_blank">Марпле</a>.</p><p dir="auto"><br></p><p dir="auto">ВАЖНО!</p><p dir="auto">Секрет правильного названия довольно прост. В нем не должно быть ничего лишнего.</p><p dir="auto"><br></p><p dir="auto">Давай сначала разберемся, а зачем оно вообще нужно, название это?</p><p dir="auto">Аглоритм вайлдберриз использует названия, чтобы помогать покупателям искать то что им нужно.</p><p dir="auto">Если покупатель ввел определенные слова в строку поиска, например "платье женское короткое", то и увидеть он хочет тот товар, который не будет отличаться от введенной формулировки. Грубо говоря, наименование товара показывает роботам, куда вести покупателя.</p><p dir="auto">Перейдем к советам по написанию правильного названия на вайлдберриз.</p><ul dir="auto"><li>Название можно менять как в личной кабинете Wildberries, так и через любой сервис для работы с вайлдберриз, например:</li></ul><p dir="auto">- <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Mpstats.io</a> - <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">перейти на сайт. </a></p><p dir="auto">- <a href="https://app.mayak.bz/invite/wbkurs/school707/" target="_blank">Mayak.bz</a> - <a href="https://app.mayak.bz/invite/wbkurs/school707/" target="_blank">перейти на сайт.</a></p><p dir="auto">- <a href="https://moneyplace.io/?id_ref=175244" target="_blank">Moneyplace.io</a> - <a href="https://moneyplace.io/?id_ref=175244" target="_blank">перейти на сайт.</a></p><p dir="auto">- <a href="https://my.marketguru.io/?r=94ju5g" target="_blank">Marketguru.ru</a> - <a href="https://my.marketguru.io/?r=94ju5g" target="_blank">перейти на сайт.</a></p><p dir="auto">- <a href="https://stat4market.com/?ref=adzyg4fg5f" target="_blank">Stat4market.com</a> - <a href="https://stat4market.com/?ref=adzyg4fg5f" target="_blank">перейти на сайт</a>.</p><p dir="auto">- <a href="https://marpla.ru/?ref=065a8e52" target="_blank">Marpla.ru</a> - <a href="https://marpla.ru/?ref=065a8e52" target="_blank">перейти на сайт.</a></p><p dir="auto">Так же существует множество ботов и расширений, которые могут менять названия прямо на сайте вайлдберриз.</p><p dir="auto">Плюс сервисов в том, что иногда они позволяют ставить названия длиной в 100 символов там, где уже запрещено это делать внутри кабинета вайлдберриз. Ведь в последний раз наименование для некоторых товаров официально сократили до 40 символов. В сервисах пока существует возможность влепить все 100. Но это пока.</p><ul dir="auto"><li><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Название</a> - важный аспект для продвижения на вайлдберриз, но совсем не критичный. Можно легко убедиться в этом, покопавшись по карточкам топовых конкурентов. У многих название состоит вообще из одного слова, что не мешает висеть в топе. Название - всего лишь один из факторов ранжирования.</li><li>Лучше располагать слова в порядке их убывания по запросам. "Платье женское короткое теплое", а не "Женское теплое короткое платье".</li><li><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Ключи</a> должны быть в том виде, в каком собраны. Не меняй окончания, форму слов. Лучше пусть текст будет слегка кривоват.</li><li>Не ставь между словами "/" и прочие фигуры, лучше даже на запятые подзабить.</li><li>Не надо повторять слова.</li><li>Все слова должны быть по делу и в первую очередь описывать товар. Если платье черное, то и не за чем впихивать ключ "белое".</li><li>"Платье черное длинное повседневное в офис" - пример хорошего названия.</li><li>Можно писать название по формулам, так как иногда в наименовании нужны технические характеристики или другие детали.</li></ul><p dir="auto">Вот шаблонные варианты названий товара для вайлдберриз.</p><ol dir="auto"><li><strong>Категория – назначение – модель, либо отдельные нюансы – изменяемые параметры (размер, объём, цвет и т.д.)</strong></li></ol><p dir="auto">Пример:<strong> (категория)</strong> Платье <strong>(назначение)</strong> на свадьбу – <strong>(модель)</strong> длинное <strong>(изменяемые параметры) </strong>красное.</p><p dir="auto"><br></p><p dir="auto">2. <strong>Модель - тип - название - 2-3 свойства</strong></p><p dir="auto">Пример:<strong> (Модель) </strong>Разделочная доска <strong>(тип)</strong> для мяса <strong>(название) </strong>Plemdex <strong>(свойства)</strong> для керамических ножей</p><p dir="auto"><br></p><p dir="auto">3. <strong>Название - модель/тип - для кого / для чего - свойства</strong></p><p dir="auto">Пример:<strong> (название)</strong> Bernik<strong> (тип)</strong> наушники беспроводные <strong> (для чего)</strong> для Android <strong>(свойства)</strong> с шумоподавлением.</p><p dir="auto"><br></p><p dir="auto">4.<strong> Категория товара — бренд (линейка) — модель (нюансы) — свойства/параметры.</strong></p><p dir="auto">Пример: <strong>(категория товара)</strong> Скраб для лица <strong>(бренд) </strong>Rosemany <strong>(модель)</strong> увлажняющий для сухой кожи <strong>(свойства)</strong> мелкого помола.</p><p dir="auto"><br></p></div><div class="ql-clipboard" contenteditable="true" tabindex="-1" bis_skin_checked="1"></div><div id="_tl_link_tooltip" class="tl_link_tooltip" bis_skin_checked="1"></div><div id="_tl_tooltip" class="tl_tooltip" bis_skin_checked="1">
+            <div class="buttons" bis_skin_checked="1">
+              <span class="button_hover"></span>
+              <span class="button_group"><!--
+             --><button id="_bold_button"></button><!--
+             --><button id="_italic_button"></button><!--
+             --><button id="_link_button"></button><!--
+           --></span><!--
+           --><span class="button_group"><!--
+             --><button id="_header_button"></button><!--
+             --><button id="_subheader_button"></button><!--
+             --><button id="_quote_button"></button><!--
+           --></span>
+            </div>
+            <div class="prompt" bis_skin_checked="1">
+              <span class="close"></span>
+              <div class="prompt_input_wrap" bis_skin_checked="1"><input type="url" class="prompt_input"></div>
+            </div>
+          </div><div id="_tl_blocks" class="tl_blocks" bis_skin_checked="1">
+            <div class="buttons" bis_skin_checked="1">
+              <button id="_image_button"></button><!--
+           --><button id="_embed_button"></button>
+            </div>
+          </div></article>
+          
+          
+          
+          <aside class="tl_article_buttons">
+            <div class="account account_top" bis_skin_checked="1"></div>
+            <button id="_edit_button" class="button edit_button">Edit</button><!--
+         --><button id="_publish_button" class="button publish_button">Publish</button>
+            <div class="account account_bottom" bis_skin_checked="1"></div>
+            <div id="_error_msg" class="error_msg" bis_skin_checked="1"></div>
+          </aside>
+        </main>
+      </div>
+    </div>
+    <div id="_tl_alerts" class="tl_alerts" bis_skin_checked="1"></div>
+    
+    <script>var T={"apiUrl":"https:\/\/edit.telegra.ph","datetime":1677137418,"pageId":"e117811f9019693c26b7a","editable":true};(function(){var b=document.querySelector('time');if(b&&T.datetime){var a=new Date(1E3*T.datetime),d='January February March April May June July August September October November December'.split(' ')[a.getMonth()],c=a.getDate();b.innerText=d+' '+(10>c?'0':'')+c+', '+a.getFullYear()}})();</script>
+    <script src="./12_files/jquery.min.js"></script>
+    <script src="./12_files/jquery.selection.min.js"></script>
+    <script src="./12_files/autosize.min.js"></script>
+    <script src="./12_files/load-image.all.min.js"></script>
+    <script src="./12_files/quill.min.js"></script>
+    <script src="./12_files/core.min.js"></script>
+    <script async="" src="./12_files/_websync_"></script>
+  
+</body></html>

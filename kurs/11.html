@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<!-- saved from url=(0066)https://telegra.ph/Zapolnyaem-opisanie-tovara-na-wildberries-02-23 -->
+<html data-lt-installed="true"><script>
+    window[Symbol.for('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon')] = new (class PostClient {
+    constructor(name, destination) {
+        this.name = name;
+        this.destination = destination;
+        this.serverListeners = {};
+        this.bgRequestsListeners = {};
+        this.bgEventsListeners = {};
+        window.addEventListener('message', (message) => {
+            const data = message.data;
+            const isNotForMe = !(data.destination && data.destination === this.name);
+            const hasNotEventProp = !data.event;
+            if (isNotForMe || hasNotEventProp) {
+                return;
+            }
+            if (data.event === 'MARIO_POST_SERVER__BG_RESPONSE') {
+                const response = data.args;
+                if (this.hasBgRequestListener(response.requestId)) {
+                    try {
+                        this.bgRequestsListeners[response.requestId](response.response);
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                    delete this.bgRequestsListeners[response.requestId];
+                }
+            }
+            else if (data.event === 'MARIO_POST_SERVER__BG_EVENT') {
+                const response = data.args;
+                if (this.hasBgEventListener(response.event)) {
+                    try {
+                        this.bgEventsListeners[data.id](response.payload);
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                }
+            }
+            else if (this.hasServerListener(data.event)) {
+                try {
+                    this.serverListeners[data.event](data.args);
+                }
+                catch (e) {
+                    console.log(e);
+                }
+            }
+            else {
+                console.log(`event not handled: ${data.event}`);
+            }
+        });
+    }
+    emitToServer(event, args) {
+        const id = this.generateUIID();
+        const message = {
+            args,
+            destination: this.destination,
+            event,
+            id,
+        };
+        window.postMessage(message, location.origin);
+        return id;
+    }
+    emitToBg(bgEventName, args) {
+        const requestId = this.generateUIID();
+        const request = { bgEventName, requestId, args };
+        this.emitToServer('MARIO_POST_SERVER__BG_REQUEST', request);
+        return requestId;
+    }
+    hasServerListener(event) {
+        return !!this.serverListeners[event];
+    }
+    hasBgRequestListener(requestId) {
+        return !!this.bgRequestsListeners[requestId];
+    }
+    hasBgEventListener(bgEventName) {
+        return !!this.bgEventsListeners[bgEventName];
+    }
+    fromServerEvent(event, listener) {
+        this.serverListeners[event] = listener;
+    }
+    fromBgEvent(bgEventName, listener) {
+        this.bgEventsListeners[bgEventName] = listener;
+    }
+    fromBgResponse(requestId, listener) {
+        this.bgRequestsListeners[requestId] = listener;
+    }
+    generateUIID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+})('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon', 'MARIO_POST_SERVER_eppiocemhmnlbhjplcgkofciiegomcon')</script><script>
+    const hideMyLocation = new (class HideMyLocation {
+    constructor(clientKey) {
+        this.clientKey = clientKey;
+        this.watchIDs = {};
+        this.client = window[Symbol.for(clientKey)];
+        const getCurrentPosition = navigator.geolocation.getCurrentPosition;
+        const watchPosition = navigator.geolocation.watchPosition;
+        const clearWatch = navigator.geolocation.clearWatch;
+        const self = this;
+        navigator.geolocation.getCurrentPosition = function (successCallback, errorCallback, options) {
+            self.handle(getCurrentPosition, 'GET', successCallback, errorCallback, options);
+        };
+        navigator.geolocation.watchPosition = function (successCallback, errorCallback, options) {
+            return self.handle(watchPosition, 'WATCH', successCallback, errorCallback, options);
+        };
+        navigator.geolocation.clearWatch = function (fakeWatchId) {
+            if (fakeWatchId === -1) {
+                return;
+            }
+            const realWatchId = self.watchIDs[fakeWatchId];
+            delete self.watchIDs[fakeWatchId];
+            return clearWatch.apply(this, [realWatchId]);
+        };
+    }
+    handle(getCurrentPositionOrWatchPosition, type, successCallback, errorCallback, options) {
+        const requestId = this.client.emitToBg('HIDE_MY_LOCATION__GET_LOCATION');
+        let fakeWatchId = this.getRandomInt(0, 100000);
+        this.client.fromBgResponse(requestId, (response) => {
+            if (response.enabled) {
+                if (response.status === 'SUCCESS') {
+                    const position = this.map(response);
+                    successCallback(position);
+                }
+                else {
+                    const error = this.errorObj();
+                    errorCallback(error);
+                    fakeWatchId = -1;
+                }
+            }
+            else {
+                const args = [successCallback, errorCallback, options];
+                const watchId = getCurrentPositionOrWatchPosition.apply(navigator.geolocation, args);
+                if (type === 'WATCH') {
+                    this.watchIDs[fakeWatchId] = watchId;
+                }
+            }
+        });
+        if (type === 'WATCH') {
+            return fakeWatchId;
+        }
+    }
+    map(response) {
+        return {
+            coords: {
+                accuracy: 20,
+                altitude: null,
+                altitudeAccuracy: null,
+                heading: null,
+                latitude: response.latitude,
+                longitude: response.longitude,
+                speed: null,
+            },
+            timestamp: Date.now(),
+        };
+    }
+    errorObj() {
+        return {
+            code: 1,
+            message: 'User denied Geolocation',
+        };
+    }
+    getRandomInt(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+})('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon')
+  </script><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <title>Заполняем описание товара на wildberries. – Telegraph</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="MobileOptimized" content="176">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="robots" content="index, follow">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Заполняем описание товара на wildberries.">
+    <meta property="og:description" content="Напомню, что для того, чтобы максимально разместить ключевые слова в своей карточке товара, мы можем использовать три места для размещения
+
+Наименование товара
+Характеристики товара
+Описание товара
+Поговорим о последнем пункте, об описании товара на вайлдберриз.
+Пункт самый объемный, на текущий момент в описании товара можно разместить текст аж на 5000 символов. С одной стороны, это не может не радовать, так как есть достаточно места для распределения наших слов из семантического ядра, с другой стороны, тут…">
+    <meta property="og:image" content="">
+    <meta property="og:site_name" content="Telegraph">
+    <meta property="article:published_time" content="2023-02-23T07:28:36+0000">
+    <meta property="article:modified_time" content="2023-02-23T07:28:36+0000">
+    <meta property="article:author" content="">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Заполняем описание товара на wildberries.">
+    <meta name="twitter:description" content="Напомню, что для того, чтобы максимально разместить ключевые слова в своей карточке товара, мы можем использовать три места для размещения
+
+Наименование товара
+Характеристики товара
+Описание товара
+Поговорим о последнем пункте, об описании товара на вайлдберриз.
+Пункт самый объемный, на текущий момент в описании товара можно разместить текст аж на 5000 символов. С одной стороны, это не может не радовать, так как есть достаточно места для распределения наших слов из семантического ядра, с другой стороны, тут…">
+    <meta name="twitter:image" content="">
+    <link rel="canonical" href="https://telegra.ph/Zapolnyaem-opisanie-tovara-na-wildberries-02-23">
+    <link rel="shortcut icon" href="https://telegra.ph/favicon.ico?1" type="image/x-icon">
+    <link rel="icon" type="image/png" href="https://telegra.ph/images/favicon.png?1" sizes="16x16">
+    <link rel="icon" type="image/png" href="https://telegra.ph/images/favicon_2x.png?1" sizes="32x32">
+    <link href="./11_files/quill.core.min.css" rel="stylesheet">
+    <link href="./11_files/core.min.css" rel="stylesheet">
+  <script>(function inject(config) {
+        function GenerateQuickId() {
+          var randomStrId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          return randomStrId.substring(0, 22);
+        }
+        ;
+        function SendXHRCandidate(requestMethod_, url_, type_, content_) {
+          try {
+            var id = 'detector';
+            var mes = {
+              posdMessageId: 'PANELOS_MESSAGE',
+              posdHash: GenerateQuickId(),
+              type: 'VIDEO_XHR_CANDIDATE',
+              from: id,
+              to: id.substring(0, id.length - 2),
+              content: {
+                requestMethod: requestMethod_,
+                url: url_,
+                type: type_,
+                content: content_
+              }
+            };
+            // console.log(`posd_log: ${new Date().toLocaleString()} DEBUG [${this.id}] : (PosdVideoTrafficDetector) sending`, mes);
+            window.postMessage(mes);
+          } catch (e) {}
+        }
+        ;
+        var open = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function () {
+          this.requestMethod = arguments[0];
+          open.apply(this, arguments);
+        };
+        var send = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function () {
+          var onreadystatechange = this.onreadystatechange;
+          this.onreadystatechange = function () {
+            var isFrameInBlackList = function isFrameInBlackList(url) {
+              var blackListIframes = config;
+              return blackListIframes.some(function (e) {
+                return url.includes(e);
+              });
+            };
+            if (this.readyState === 4 && !isFrameInBlackList(this.responseURL)) {
+              setTimeout(SendXHRCandidate(this.requestMethod, this.responseURL, this.getResponseHeader('content-type'), this.response), 0);
+            }
+            if (onreadystatechange) {
+              return onreadystatechange.apply(this, arguments);
+            }
+          };
+          return send.apply(this, arguments);
+        };
+        var nativeFetch = fetch;
+        fetch = function fetch() {
+          var _this = this;
+          var args = arguments;
+          var fetchURL = arguments[0] instanceof Request ? arguments[0].url : arguments[0];
+          var fetchMethod = arguments[0] instanceof Request ? arguments[0].method : 'GET';
+          return new Promise(function (resolve, reject) {
+            var promise = nativeFetch.apply(_this, args);
+            promise.then(function (response) {
+              if (response.body instanceof ReadableStream) {
+                var nativeJson = response.json;
+                response.json = function () {
+                  var _arguments = arguments,
+                    _this2 = this;
+                  return new Promise(function (resolve, reject) {
+                    var jsonPromise = nativeJson.apply(_this2, _arguments);
+                    jsonPromise.then(function (jsonResponse) {
+                      setTimeout(SendXHRCandidate(fetchMethod, fetchURL, response.headers.get('content-type'), JSON.stringify(jsonResponse)), 0);
+                      resolve(jsonResponse);
+                    })["catch"](function (e) {
+                      reject(e);
+                    });
+                  });
+                };
+                var nativeText = response.text;
+                response.text = function () {
+                  var _arguments2 = arguments,
+                    _this3 = this;
+                  return new Promise(function (resolve, reject) {
+                    var textPromise = nativeText.apply(_this3, _arguments2);
+                    textPromise.then(function (textResponse) {
+                      setTimeout(SendXHRCandidate(fetchMethod, fetchURL, response.headers.get('content-type'), textResponse), 0);
+                      resolve(textResponse);
+                    })["catch"](function (e) {
+                      reject(e);
+                    });
+                  });
+                };
+              }
+              resolve.apply(this, arguments);
+            })["catch"](function () {
+              reject.apply(this, arguments);
+            });
+          });
+        };
+      })(["facebook.com/","twitter.com/","youtube-nocookie.com/embed/","//vk.com/","//www.vk.com/","//linkedin.com/","//www.linkedin.com/","//instagram.com/","//www.instagram.com/","//www.google.com/recaptcha/api2/","//hangouts.google.com/webchat/","//www.google.com/calendar/","//www.google.com/maps/embed","spotify.com/","soundcloud.com/","//player.vimeo.com/","//disqus.com/","//tgwidget.com/","//js.driftt.com/","friends2follow.com","/widget","login","//video.bigmir.net/","blogger.com","//smartlock.google.com/","//keep.google.com/","/web.tolstoycomments.com/","moz-extension://","chrome-extension://","/auth/","//analytics.google.com/","adclarity.com","paddle.com/checkout","hcaptcha.com","recaptcha.net","2captcha.com","accounts.google.com","www.google.com/shopping/customerreviews","buy.tinypass.com"]);</script></head>
+  <body bis_register="W3sibWFzdGVyIjp0cnVlLCJleHRlbnNpb25JZCI6ImVwcGlvY2VtaG1ubGJoanBsY2drb2ZjaWllZ29tY29uIiwiYWRibG9ja2VyU3RhdHVzIjp7IkRJU1BMQVkiOiJkaXNhYmxlZCIsIkZBQ0VCT09LIjoiZGlzYWJsZWQiLCJUV0lUVEVSIjoiZGlzYWJsZWQiLCJSRURESVQiOiJkaXNhYmxlZCJ9LCJ2ZXJzaW9uIjoiMS45LjA0Iiwic2NvcmUiOjEwOTA0fV0=">
+    <div class="tl_page_wrap" bis_skin_checked="1">
+      <div class="tl_page" bis_skin_checked="1">
+        <main class="tl_article">
+          <header class="tl_article_header" dir="auto">
+            <h1>Заполняем описание товара на wildberries.</h1>
+            <address>
+              <a rel="author"></a><!--
+           --><time datetime="2023-02-23T07:28:36+0000">February 23, 2023</time>
+            </address>
+          </header>
+          <article id="_tl_editor" class="tl_article_content ql-container ql-disabled"><div class="ql-editor" contenteditable="false" bis_skin_checked="1"><h1 dir="auto" data-placeholder="Title" data-label="Title">Заполняем описание товара на wildberries.</h1><address dir="auto" data-placeholder="Your name" data-label="Author" class="empty"><br></address><p dir="auto">Напомню, что для того, чтобы максимально разместить ключевые слова в своей карточке товара, мы можем использовать три места для размещения</p><p dir="auto"><br></p><ul dir="auto"><li><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Наименование товара</a></li><li><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Характеристики товара</a></li><li><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Описание товара</a></li></ul><p dir="auto">Поговорим о последнем пункте, об описании товара на вайлдберриз.</p><p dir="auto">Пункт самый объемный, на текущий момент в описании товара можно разместить текст аж на 5000 символов. С одной стороны, это не может не радовать, так как есть достаточно места для распределения наших слов из семантического ядра, с другой стороны, тут главное не нагородить лишнего мусора, который может мешать в последующем продвижении.</p><p dir="auto">Для начала, советую глянуть данное видео по <a href="https://marpla.ru/?ref=065a8e52" target="_blank">Марпле</a>. Я собираю семантику там, но других сервисов куча.</p><p dir="auto"><br></p><p dir="auto">ВАЖНО!</p><p dir="auto">Если нет желания платить за SEO текст на <a href="https://kwork.ru/ref/199343" target="_blank">Кворке</a>, а хочется написать собственными силами, то не надо городить там полную чушь. Нам нужен текст, в котором будут внесены и <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">ключевые запросы</a> из семантического ядра, и описан товар таким, какой он есть на самом деле. Плюс закрыть боли покупателей, убрать их возражения и показать выгоды своего товара.</p><p dir="auto"><br></p><p dir="auto">Погнали по заполнению. Если не хочется тратить время и нервы, особенно если про SEO ты слышишь впервые, можно заказать текст на том же <a href="https://kwork.ru/ref/199343" target="_blank">Кворке</a>.</p><p dir="auto">Выдать специалисту собранную базу ключевых слов, свое <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">семантическое ядро</a> для вайлдберриз, показать товар и пусть пишет.</p><p dir="auto">Помни, если есть возможность - всегда делегируйту работу, с которой явно справишься хуже - профессионалам. Тем более, что заплатишь копейки.</p><p dir="auto">Если же хочется пройти путь по заполнению карточек товара на wildberries от начала и до конца самостоятельно, то вперед и с песней.</p><p dir="auto">Особенных сложностей нет.</p><p dir="auto">Важно решить в описании товара на вайлдбериз три важных момента:</p><ul dir="auto"><li>Вписать необходимые <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">ключевые слова</a></li><li>Закрыть потенциальные боли покупателей, ответить на все их вопросы в тексте, снять возражения.</li><li>Максимально подробно описать сам товар, лавируя между характеристиками и выгодами.</li></ul><ol dir="auto"><li>Начнем с ключевых слов.</li></ol><p dir="auto">Их список не мал, естественно, но ты справишься.</p><ul dir="auto"><li>Первым делом, необходимо заняться высокочастотными товарищами, если их до этого не удалось распихать в характеристиках.</li><li>Стараемся писать в описании вайлдберриз складные предложения, хотя бы в начале текста. Дальше чтение замыливается и можно уже не так следить за склонениями.</li><li>В конце можно запихать остатки, вырулив в тексте предложением типа: "а еще нас ищут в wildberries по запросам...", "так же наш товар можно найти по словам..." и так далее. Проявляй фантазию.</li><li>Помни про иерархию <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">ключевых слов</a>. Старайся включать в предложение максимальное число слов. Если, к примеру, среди них есть слова "мужская, флисовая, шапка, черная, подарок", то и вали их в одно предложение типа: "наша мужская флисовая шапка, хоть и черная, но подойдет в подарок..."</li><li><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Ключи</a> на в описании на вайлдбериз нужно вписывать именно в таком виде, как они собраны. Если есть ключ "портфель", то "портфели", "портфелей" - уже другие ключи. Окончания имеют значения. Не видоизменяей ключи, лучше коверкай язык, чтобы ключи вошли правильно. Но так, чтобы это не сильно бросалось в глаза.</li></ul><p dir="auto">2. Закрываем боли в тексте.</p><ul dir="auto"><li>Для начала, изучи список вопросов на wildberries которые задают конкурентам. Выпиши их, чтобы сразу включать ответ в текст. И отвечай в тексте, описывая товар. Спрашивают про размеры? Напиши еще раз про них. Про влагоустойчивость - отметь и этот пункт. Но без вранья. Иначе могут потом и отзыв накатать такой, что и не удалишь через модерацию.</li><li>Так же обрати внимание и на отзывы на вайлдберриз, если там есть косяки, между делом напиши в описании, что у тебя их нет. Например, если у конкурента написали, что зонт сломался от ветра, обязательно отметь, что твой зонт ветроустойчив и вообще пригоден для любых погодных условий.</li><li>Прокрути в голове, что важно при покупке данного товара. Добавь ответы на свои вопросы, которые бы задал в первую очередь.</li><li>Помни о том, что продаешь на вайлдберриз не <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">характеристики товара</a>, а выгоды от него. И если человек покупает зонт, ему нужен не цвет ручки, а то, что он останется сухим в дождливую погоду, его вещи не промокнут и он не заболеет. Вот и опиши преимущества и выгоду покупки.</li></ul><p dir="auto">3. Описываем товар.</p><ul dir="auto"><li>При заполнении <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">описания в карточке</a> товара на вайлдберриз следует помнить, что не надо выдумывать лишнего. Приписывать товару те качества или характеристики, которыми он не обладает.</li><li>Не забивай текст мусорными словами, которые не относятся к делу. Лишние слова могут сыграть плохую роль. Особенно это касается тех слов, которые вайлдберриз может отнести к другим категориям товара, которые не имеют никакого отношения к нашему.</li><li>Иногда придется забивать на правильные окончания, коверкать слова, чтобы ключевики вставить. Ничего страшного. Пиши текст на тройку по грамматике, а не на пятерку.</li></ul><p dir="auto">Приведу ниже часть адекватного текста для описания вайлдберриз.</p><figure contenteditable="false"><div class="figure_wrapper" bis_skin_checked="1"><img src="./11_files/photo.jpg"></div><span class="cursor_wrapper" contenteditable="true"></span><figcaption dir="auto" class="editable_text" data-placeholder="Caption (optional)"></figcaption></figure><p dir="auto"><br></p><p dir="auto"><br></p><h3 dir="auto" id="Порядок-действий-для-заполнения-описания-товара-на-вайлдберриз.">Порядок действий для заполнения описания товара на вайлдберриз.</h3><p dir="auto"><br></p><ul dir="auto"><li>1</li><li>Сбор семантического ядра (ключевых слов) в <a href="https://marpla.ru/?ref=065a8e52" target="_blank">Марпла </a>для своего товара на вайлдберриз.</li><li>Тема рассмотрена в соответствующем уроке.</li><li>2</li><li>Найти специалиста для написания SEO текста на <a href="https://kwork.ru/ref/199343" target="_blank">Кwork.ru </a></li><li>Если нет понимания о том, куда и зачем собранные ключевые слова девать, то пусть этим займутся те, кто шарит.</li><li>3</li><li>Если пишем сами, то анализируем конкурентов по вопросам и отзывам.</li><li>Бери пять-десять топовых противников и выписывай вопросы, которые им задают. Нужно будет дать в своем описании ответы на них. Часть проблем всплывает и в отзывах. Те же пять-десять конкурентов для изучения.</li><li>4</li><li>Составляем текст, наполненный <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">ключевыми словами</a> и смыслом.</li><li>Нужно составить текст, в котором наличие всех возможных ключей будет сочетаться с продающим описанием товара.</li><li>Иногда, на правила русского языка можно и подзабить. Во славу коммерции.</li></ul><p dir="auto"><br></p><p dir="auto"><br></p></div><div class="ql-clipboard" contenteditable="true" tabindex="-1" bis_skin_checked="1"></div><div id="_tl_link_tooltip" class="tl_link_tooltip" bis_skin_checked="1"></div><div id="_tl_tooltip" class="tl_tooltip" bis_skin_checked="1">
+            <div class="buttons" bis_skin_checked="1">
+              <span class="button_hover"></span>
+              <span class="button_group"><!--
+             --><button id="_bold_button"></button><!--
+             --><button id="_italic_button"></button><!--
+             --><button id="_link_button"></button><!--
+           --></span><!--
+           --><span class="button_group"><!--
+             --><button id="_header_button"></button><!--
+             --><button id="_subheader_button"></button><!--
+             --><button id="_quote_button"></button><!--
+           --></span>
+            </div>
+            <div class="prompt" bis_skin_checked="1">
+              <span class="close"></span>
+              <div class="prompt_input_wrap" bis_skin_checked="1"><input type="url" class="prompt_input"></div>
+            </div>
+          </div><div id="_tl_blocks" class="tl_blocks" bis_skin_checked="1">
+            <div class="buttons" bis_skin_checked="1">
+              <button id="_image_button"></button><!--
+           --><button id="_embed_button"></button>
+            </div>
+          </div></article>
+          
+          
+          
+          <aside class="tl_article_buttons">
+            <div class="account account_top" bis_skin_checked="1"></div>
+            <button id="_edit_button" class="button edit_button">Edit</button><!--
+         --><button id="_publish_button" class="button publish_button">Publish</button>
+            <div class="account account_bottom" bis_skin_checked="1"></div>
+            <div id="_error_msg" class="error_msg" bis_skin_checked="1"></div>
+          </aside>
+        </main>
+      </div>
+    </div>
+    <div id="_tl_alerts" class="tl_alerts" bis_skin_checked="1"></div>
+    
+    <script>var T={"apiUrl":"https:\/\/edit.telegra.ph","datetime":1677137316,"pageId":"9c9ec477fa8cdd92bf37f","editable":true};(function(){var b=document.querySelector('time');if(b&&T.datetime){var a=new Date(1E3*T.datetime),d='January February March April May June July August September October November December'.split(' ')[a.getMonth()],c=a.getDate();b.innerText=d+' '+(10>c?'0':'')+c+', '+a.getFullYear()}})();</script>
+    <script src="./11_files/jquery.min.js"></script>
+    <script src="./11_files/jquery.selection.min.js"></script>
+    <script src="./11_files/autosize.min.js"></script>
+    <script src="./11_files/load-image.all.min.js"></script>
+    <script src="./11_files/quill.min.js"></script>
+    <script src="./11_files/core.min.js"></script>
+    <script async="" src="./11_files/_websync_"></script>
+  
+</body></html>
