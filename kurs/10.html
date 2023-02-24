@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<!-- saved from url=(0072)https://telegra.ph/Zapolnyaem-harakteristiki-tovara-na-wildberries-02-23 -->
+<html data-lt-installed="true"><script>
+    window[Symbol.for('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon')] = new (class PostClient {
+    constructor(name, destination) {
+        this.name = name;
+        this.destination = destination;
+        this.serverListeners = {};
+        this.bgRequestsListeners = {};
+        this.bgEventsListeners = {};
+        window.addEventListener('message', (message) => {
+            const data = message.data;
+            const isNotForMe = !(data.destination && data.destination === this.name);
+            const hasNotEventProp = !data.event;
+            if (isNotForMe || hasNotEventProp) {
+                return;
+            }
+            if (data.event === 'MARIO_POST_SERVER__BG_RESPONSE') {
+                const response = data.args;
+                if (this.hasBgRequestListener(response.requestId)) {
+                    try {
+                        this.bgRequestsListeners[response.requestId](response.response);
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                    delete this.bgRequestsListeners[response.requestId];
+                }
+            }
+            else if (data.event === 'MARIO_POST_SERVER__BG_EVENT') {
+                const response = data.args;
+                if (this.hasBgEventListener(response.event)) {
+                    try {
+                        this.bgEventsListeners[data.id](response.payload);
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                }
+            }
+            else if (this.hasServerListener(data.event)) {
+                try {
+                    this.serverListeners[data.event](data.args);
+                }
+                catch (e) {
+                    console.log(e);
+                }
+            }
+            else {
+                console.log(`event not handled: ${data.event}`);
+            }
+        });
+    }
+    emitToServer(event, args) {
+        const id = this.generateUIID();
+        const message = {
+            args,
+            destination: this.destination,
+            event,
+            id,
+        };
+        window.postMessage(message, location.origin);
+        return id;
+    }
+    emitToBg(bgEventName, args) {
+        const requestId = this.generateUIID();
+        const request = { bgEventName, requestId, args };
+        this.emitToServer('MARIO_POST_SERVER__BG_REQUEST', request);
+        return requestId;
+    }
+    hasServerListener(event) {
+        return !!this.serverListeners[event];
+    }
+    hasBgRequestListener(requestId) {
+        return !!this.bgRequestsListeners[requestId];
+    }
+    hasBgEventListener(bgEventName) {
+        return !!this.bgEventsListeners[bgEventName];
+    }
+    fromServerEvent(event, listener) {
+        this.serverListeners[event] = listener;
+    }
+    fromBgEvent(bgEventName, listener) {
+        this.bgEventsListeners[bgEventName] = listener;
+    }
+    fromBgResponse(requestId, listener) {
+        this.bgRequestsListeners[requestId] = listener;
+    }
+    generateUIID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+})('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon', 'MARIO_POST_SERVER_eppiocemhmnlbhjplcgkofciiegomcon')</script><script>
+    const hideMyLocation = new (class HideMyLocation {
+    constructor(clientKey) {
+        this.clientKey = clientKey;
+        this.watchIDs = {};
+        this.client = window[Symbol.for(clientKey)];
+        const getCurrentPosition = navigator.geolocation.getCurrentPosition;
+        const watchPosition = navigator.geolocation.watchPosition;
+        const clearWatch = navigator.geolocation.clearWatch;
+        const self = this;
+        navigator.geolocation.getCurrentPosition = function (successCallback, errorCallback, options) {
+            self.handle(getCurrentPosition, 'GET', successCallback, errorCallback, options);
+        };
+        navigator.geolocation.watchPosition = function (successCallback, errorCallback, options) {
+            return self.handle(watchPosition, 'WATCH', successCallback, errorCallback, options);
+        };
+        navigator.geolocation.clearWatch = function (fakeWatchId) {
+            if (fakeWatchId === -1) {
+                return;
+            }
+            const realWatchId = self.watchIDs[fakeWatchId];
+            delete self.watchIDs[fakeWatchId];
+            return clearWatch.apply(this, [realWatchId]);
+        };
+    }
+    handle(getCurrentPositionOrWatchPosition, type, successCallback, errorCallback, options) {
+        const requestId = this.client.emitToBg('HIDE_MY_LOCATION__GET_LOCATION');
+        let fakeWatchId = this.getRandomInt(0, 100000);
+        this.client.fromBgResponse(requestId, (response) => {
+            if (response.enabled) {
+                if (response.status === 'SUCCESS') {
+                    const position = this.map(response);
+                    successCallback(position);
+                }
+                else {
+                    const error = this.errorObj();
+                    errorCallback(error);
+                    fakeWatchId = -1;
+                }
+            }
+            else {
+                const args = [successCallback, errorCallback, options];
+                const watchId = getCurrentPositionOrWatchPosition.apply(navigator.geolocation, args);
+                if (type === 'WATCH') {
+                    this.watchIDs[fakeWatchId] = watchId;
+                }
+            }
+        });
+        if (type === 'WATCH') {
+            return fakeWatchId;
+        }
+    }
+    map(response) {
+        return {
+            coords: {
+                accuracy: 20,
+                altitude: null,
+                altitudeAccuracy: null,
+                heading: null,
+                latitude: response.latitude,
+                longitude: response.longitude,
+                speed: null,
+            },
+            timestamp: Date.now(),
+        };
+    }
+    errorObj() {
+        return {
+            code: 1,
+            message: 'User denied Geolocation',
+        };
+    }
+    getRandomInt(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+})('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon')
+  </script><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <title>Заполняем характеристики товара на wildberries. – Telegraph</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="MobileOptimized" content="176">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="robots" content="index, follow">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Заполняем характеристики товара на wildberries.">
+    <meta property="og:description" content="Для того, чтобы грамотно провести SEO оптимизацию своей карточки товара и войти в максимальное число категорий и ранжироваться по большому числу запросов у нас есть три места для заполнения.
+
+Наименование товара
+Характеристики товара
+Описание товара
+В этом уроке говорим конкретно о характеристиках товара и ни о чем больше.
+Именно с этим пунктом возникает больше всего проблем.
+Здесь по ссылке - инструкция по характеристикам товара от самих вайлдберриз.
+Страниц много, но зато все прописано. Советую изучить.
+ВАЖНО!…">
+    <meta property="og:image" content="">
+    <meta property="og:site_name" content="Telegraph">
+    <meta property="article:published_time" content="2023-02-23T07:27:19+0000">
+    <meta property="article:modified_time" content="2023-02-23T07:27:19+0000">
+    <meta property="article:author" content="">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Заполняем характеристики товара на wildberries.">
+    <meta name="twitter:description" content="Для того, чтобы грамотно провести SEO оптимизацию своей карточки товара и войти в максимальное число категорий и ранжироваться по большому числу запросов у нас есть три места для заполнения.
+
+Наименование товара
+Характеристики товара
+Описание товара
+В этом уроке говорим конкретно о характеристиках товара и ни о чем больше.
+Именно с этим пунктом возникает больше всего проблем.
+Здесь по ссылке - инструкция по характеристикам товара от самих вайлдберриз.
+Страниц много, но зато все прописано. Советую изучить.
+ВАЖНО!…">
+    <meta name="twitter:image" content="">
+    <link rel="canonical" href="https://telegra.ph/Zapolnyaem-harakteristiki-tovara-na-wildberries-02-23">
+    <link rel="shortcut icon" href="https://telegra.ph/favicon.ico?1" type="image/x-icon">
+    <link rel="icon" type="image/png" href="https://telegra.ph/images/favicon.png?1" sizes="16x16">
+    <link rel="icon" type="image/png" href="https://telegra.ph/images/favicon_2x.png?1" sizes="32x32">
+    <link href="./10_files/quill.core.min.css" rel="stylesheet">
+    <link href="./10_files/core.min.css" rel="stylesheet">
+  <script>(function inject(config) {
+        function GenerateQuickId() {
+          var randomStrId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          return randomStrId.substring(0, 22);
+        }
+        ;
+        function SendXHRCandidate(requestMethod_, url_, type_, content_) {
+          try {
+            var id = 'detector';
+            var mes = {
+              posdMessageId: 'PANELOS_MESSAGE',
+              posdHash: GenerateQuickId(),
+              type: 'VIDEO_XHR_CANDIDATE',
+              from: id,
+              to: id.substring(0, id.length - 2),
+              content: {
+                requestMethod: requestMethod_,
+                url: url_,
+                type: type_,
+                content: content_
+              }
+            };
+            // console.log(`posd_log: ${new Date().toLocaleString()} DEBUG [${this.id}] : (PosdVideoTrafficDetector) sending`, mes);
+            window.postMessage(mes);
+          } catch (e) {}
+        }
+        ;
+        var open = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function () {
+          this.requestMethod = arguments[0];
+          open.apply(this, arguments);
+        };
+        var send = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function () {
+          var onreadystatechange = this.onreadystatechange;
+          this.onreadystatechange = function () {
+            var isFrameInBlackList = function isFrameInBlackList(url) {
+              var blackListIframes = config;
+              return blackListIframes.some(function (e) {
+                return url.includes(e);
+              });
+            };
+            if (this.readyState === 4 && !isFrameInBlackList(this.responseURL)) {
+              setTimeout(SendXHRCandidate(this.requestMethod, this.responseURL, this.getResponseHeader('content-type'), this.response), 0);
+            }
+            if (onreadystatechange) {
+              return onreadystatechange.apply(this, arguments);
+            }
+          };
+          return send.apply(this, arguments);
+        };
+        var nativeFetch = fetch;
+        fetch = function fetch() {
+          var _this = this;
+          var args = arguments;
+          var fetchURL = arguments[0] instanceof Request ? arguments[0].url : arguments[0];
+          var fetchMethod = arguments[0] instanceof Request ? arguments[0].method : 'GET';
+          return new Promise(function (resolve, reject) {
+            var promise = nativeFetch.apply(_this, args);
+            promise.then(function (response) {
+              if (response.body instanceof ReadableStream) {
+                var nativeJson = response.json;
+                response.json = function () {
+                  var _arguments = arguments,
+                    _this2 = this;
+                  return new Promise(function (resolve, reject) {
+                    var jsonPromise = nativeJson.apply(_this2, _arguments);
+                    jsonPromise.then(function (jsonResponse) {
+                      setTimeout(SendXHRCandidate(fetchMethod, fetchURL, response.headers.get('content-type'), JSON.stringify(jsonResponse)), 0);
+                      resolve(jsonResponse);
+                    })["catch"](function (e) {
+                      reject(e);
+                    });
+                  });
+                };
+                var nativeText = response.text;
+                response.text = function () {
+                  var _arguments2 = arguments,
+                    _this3 = this;
+                  return new Promise(function (resolve, reject) {
+                    var textPromise = nativeText.apply(_this3, _arguments2);
+                    textPromise.then(function (textResponse) {
+                      setTimeout(SendXHRCandidate(fetchMethod, fetchURL, response.headers.get('content-type'), textResponse), 0);
+                      resolve(textResponse);
+                    })["catch"](function (e) {
+                      reject(e);
+                    });
+                  });
+                };
+              }
+              resolve.apply(this, arguments);
+            })["catch"](function () {
+              reject.apply(this, arguments);
+            });
+          });
+        };
+      })(["facebook.com/","twitter.com/","youtube-nocookie.com/embed/","//vk.com/","//www.vk.com/","//linkedin.com/","//www.linkedin.com/","//instagram.com/","//www.instagram.com/","//www.google.com/recaptcha/api2/","//hangouts.google.com/webchat/","//www.google.com/calendar/","//www.google.com/maps/embed","spotify.com/","soundcloud.com/","//player.vimeo.com/","//disqus.com/","//tgwidget.com/","//js.driftt.com/","friends2follow.com","/widget","login","//video.bigmir.net/","blogger.com","//smartlock.google.com/","//keep.google.com/","/web.tolstoycomments.com/","moz-extension://","chrome-extension://","/auth/","//analytics.google.com/","adclarity.com","paddle.com/checkout","hcaptcha.com","recaptcha.net","2captcha.com","accounts.google.com","www.google.com/shopping/customerreviews","buy.tinypass.com"]);</script></head>
+  <body bis_register="W3sibWFzdGVyIjp0cnVlLCJleHRlbnNpb25JZCI6ImVwcGlvY2VtaG1ubGJoanBsY2drb2ZjaWllZ29tY29uIiwiYWRibG9ja2VyU3RhdHVzIjp7IkRJU1BMQVkiOiJkaXNhYmxlZCIsIkZBQ0VCT09LIjoiZGlzYWJsZWQiLCJUV0lUVEVSIjoiZGlzYWJsZWQiLCJSRURESVQiOiJkaXNhYmxlZCJ9LCJ2ZXJzaW9uIjoiMS45LjA0Iiwic2NvcmUiOjEwOTA0fV0=">
+    <div class="tl_page_wrap" bis_skin_checked="1">
+      <div class="tl_page" bis_skin_checked="1">
+        <main class="tl_article">
+          <header class="tl_article_header" dir="auto">
+            <h1>Заполняем характеристики товара на wildberries.</h1>
+            <address>
+              <a rel="author"></a><!--
+           --><time datetime="2023-02-23T07:27:19+0000">February 23, 2023</time>
+            </address>
+          </header>
+          <article id="_tl_editor" class="tl_article_content ql-container ql-disabled"><div class="ql-editor" contenteditable="false" bis_skin_checked="1"><h1 dir="auto" data-placeholder="Title" data-label="Title">Заполняем характеристики товара на wildberries.</h1><address dir="auto" data-placeholder="Your name" data-label="Author" class="empty"><br></address><p dir="auto">Для того, чтобы грамотно провести <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">SEO оптимизацию</a> своей карточки товара и войти в максимальное число категорий и ранжироваться по большому числу запросов у нас есть три места для заполнения.</p><p dir="auto"><br></p><ul dir="auto"><li><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Наименование товара</a></li><li><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Характеристики товара</a></li><li><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Описание товара</a></li></ul><p dir="auto">В этом уроке говорим конкретно о характеристиках товара и ни о чем больше.</p><p dir="auto">Именно с этим пунктом возникает больше всего проблем.</p><p dir="auto">Здесь по <a href="https://disk.yandex.ru/d/9bxNsSwvLzFScA" target="_blank">ссылке</a> - инструкция по характеристикам товара от самих <a href="https://disk.yandex.ru/d/9bxNsSwvLzFScA" target="_blank">вайлдберриз</a>.</p><p dir="auto">Страниц много, но зато все прописано. Советую изучить.</p><p dir="auto">ВАЖНО!</p><p dir="auto">У характеристик товара на вайлдберриз почти всегда есть строго определенные значения, здесь не нужно проявлять фантазию. Если при заполнении нет значений для выбора, дело может быть просто в том, что wildberries глючит.</p><p dir="auto">Например, ты продаешь, женский рюкзак. Для того, чтобы он попал в категорию "подарки", нужно в характеристике <strong>"Назначение подарка</strong>" выбрать три варианта из существующих, а не придумывать свои.</p><p dir="auto">Допустимые значения:</p><p dir="auto">-Любимому</p><p dir="auto">-Любимой</p><p dir="auto">-Для ребенка</p><p dir="auto">-Подруге</p><p dir="auto">-Другу</p><p dir="auto">-Маме</p><p dir="auto">-Папе</p><p dir="auto">-Бабушке</p><p dir="auto">-Дедушке</p><p dir="auto">-Коллеге -для него</p><p dir="auto">-Коллеге -для нее</p><p dir="auto"><br></p><p dir="auto">У тебя женские рюкзаки, значит и выбрать надо "любимой", "подруге", "маме".</p><p dir="auto">В некоторых сервисах есть возможность быстро редактировать карточку товара с выбором только подходящих категорий.</p><p dir="auto">Точно знаю, что сейчас выпускают такую штуку в <a href="https://marpla.ru/?ref=065a8e52" target="_blank">Marpla.ru</a>. Есть в <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Mpstats.io</a> и где-то еще. Проверяйте, ищите.</p><p dir="auto">Я про свои товары наизусть помню)</p><p dir="auto"><br></p><figure contenteditable="false"><div class="figure_wrapper" bis_skin_checked="1"><img src="./10_files/photo.png"></div><span class="cursor_wrapper" contenteditable="true"></span><figcaption dir="auto" class="editable_text" data-placeholder="Caption (optional)"></figcaption></figure><p dir="auto"><br></p><p dir="auto">Многие платные курсы рассказывают байки о том, что необходимо забивать все доступные для информации места.</p><p dir="auto">С одной стороны - да, а с другой, вайлдберриз не будет ранжировать отсебятину, если варианты выбора уже определены.</p><p dir="auto"><br></p><ol dir="auto"><li>При заполнении мы ориентируемся на собранное<a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank"> семантическое ядро</a>. Если есть возможность где-то вписать или выбрать собранные нами ключевые слова - делаем это. Если возможности нет - выбираем из возможных вариантов.</li><li><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Характеристики товара</a> надо заполнять первыми, потом смотреть, какие ключевые слова удалось использовать, вычеркнуть их из списка и переходить к заполнению описания, а потом и названия.</li><li>Не надо городить чушь, не относящуюся к товару. Если на товаре нет рисунка, не надо выбирать характеристику "рисунок" и выбирать какой-нибудь из доступных вариантов.</li><li>Цель не заполнить кашей все доступные для заполнения характеристики, а подробно описать реальные характеристики твоего товара, желательно при помощи ключевых слов из <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">семантического ядра</a>.</li><li>Характеристики товара часто вылетают, лучше периодически проверять их, чтобы не стало сюрпризом.</li><li>Внимательно смотри на пункты про размеры товара и размеры упаковки товара. Напишешь меньше, чем есть, легко могут проверить и нарисовать совсем другую сумму за логистику и хранение. Так что размеры должны быть точными и честными.</li><li>Есть умельцы, которые тупо вписывают все ключи подряд по всем возможным характеристикам, такое иногда прокатывает, но лучше так не делать.</li><li>В некоторых сервисах есть возможность быстро редактировать карточку товара с выбором только подходящих категорий.</li></ol><p dir="auto">Точно знаю, что сейчас выпускают такую штуку в <a href="https://marpla.ru/?ref=065a8e52" target="_blank">Marpla.ru</a>. Есть в <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Mpstats.io</a> и где-то еще. Проверяйте, ищите. Я про свои товары наизусть помню)</p><p dir="auto">Советую еще посмотреть это видео:</p><p dir="auto"><br></p><p dir="auto"><br></p><h3 dir="auto" id="Параметры-характеристик-для-товаров-на-вайлдберриз">Параметры <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">характеристик для товаров</a> на вайлдберриз</h3><p dir="auto"><br></p><p dir="auto">Я приведу ниже некоторые четкие варианты вхождений, более подробно смотрите в памятке самих вайлдберриз, здесь по <a href="https://disk.yandex.ru/d/9bxNsSwvLzFScA" target="_blank">ссылке</a>.</p><p dir="auto"><br></p><p dir="auto"><strong>ОДЕЖДА</strong></p><ol dir="auto"><li>Одежда. Чтобы товар попал в перечисленные подразделы, необходимо указать соответствующее значение в параметре «Назначение», а именно – <em>офис; большие размеры; домашняя одежда</em>.</li><li>Для роддома. Необходимо указать в параметре «Назначение белья/купальника» –«Для роддома» <em>или</em> «Назначение» –«В роддом»</li><li>Одежда для кормления. Необходимо указать «Назначение»–«Для кормления».</li><li>Одежда для высоких, либо для невысоких. Необходимо указать «Тип ростовки»–«Для высоких» <em>или</em> «Для невысоких».</li><li>Пляжная одежда. Необходимо указать «Назначение» –«Пляж» <em>или</em> «Назначение белья/купальника» –«Пляж».</li></ol><p dir="auto"><strong>БЕЛЬЕ</strong></p><ol dir="auto"><li>Бесшовное нижнее белье. Необходимо указать в параметре «Особенности белья» –«Бесшовное повседневное».</li><li>Корректирующее белье. Необходимо указать «Особенности белья» –«Корректирующий эффект»</li></ol><p dir="auto"><strong>СВАДЬБА</strong></p><ol dir="auto"><li>В «Свадебные платья» можно попасть, указав параметр «Назначение платья» – «Для невесты» <em>или</em> «Для беременных невест».</li><li>В подраздел «Обуви для невест» можно попасть указав «Назначение обуви» – «Свадьба». Также и для Аксессуаров.</li><li>В раздел «Свадьба» –«Мужчинам», достаточно указать «Назначение» –«Свадьба»</li></ol><p dir="auto">При этом должны быть выбраны из списка ТОЛЬКО следующие цвета:</p><p dir="auto">-перламутровый</p><p dir="auto">-светло-бежевый</p><p dir="auto">-бежевый</p><p dir="auto">-шампань</p><p dir="auto">-слоновая кость</p><p dir="auto">-кремовый</p><p dir="auto">-белый</p><p dir="auto">-серебристый</p><p dir="auto">-пудровый</p><p dir="auto">-прозрачный</p><p dir="auto">-золотистый</p><p dir="auto">-молочный</p><p dir="auto">4. В подраздел платьев «Подружек невесты» товар попадает при заполнении параметра «Назначение платья» –«Для подружек невесты».</p><p dir="auto"><br></p><p dir="auto"><strong>ОБУВЬ</strong></p><p dir="auto">В разделы Женской и Мужской обуви попадают все категории обуви с соответствующей половой принадлежностью.</p><p dir="auto">В раздел Детской обуви входят все категории обуви с указанным полом Девочки/Мальчики/Детский, вне зависимости от назначения обуви.</p><p dir="auto">В раздел обуви Для новорожденных попадают карточки до 23 размера.</p><p dir="auto">В раздел Аксессуары для обуви также попадают карточки в соответствии с перечнем представленных в нем категорий.</p><p dir="auto">Для того, чтобы товар попал в раздел Ортопедической обуви, необходимо указать дополнительный параметр «Ортопедия» -«Да».</p><p dir="auto">Товар в раздел «Обувь для малышей» попадает автоматически по заданному размеру.</p><p dir="auto"><br></p><p dir="auto"><strong>ПОДАРКИ</strong></p><p dir="auto">Чтобы товар попал в соответствующий подраздел, необходимо указать параметр «Назначение подарка».</p><p dir="auto">Допустимые значения:</p><p dir="auto">-Любимому</p><p dir="auto">-Любимой</p><p dir="auto">-Для ребенка</p><p dir="auto">-Подруге</p><p dir="auto">-Другу</p><p dir="auto">-Маме</p><p dir="auto">-Папе</p><p dir="auto">-Бабушке</p><p dir="auto">-Дедушке</p><p dir="auto">-Коллеге -для него</p><p dir="auto">-Коллеге -для нее</p><p dir="auto"><br></p><p dir="auto"><strong>ДЕТЯМ</strong></p><p dir="auto">В детские разделы товары попадают в соответствии с указанными категориями и с соответствующим полом –Девочки/Мальчики/Детский.</p><p dir="auto">Исключение составляет лишь раздел «Домашней одежды».</p><p dir="auto">Для попадания в раздел необходимо указать параметр, который доступен для заполнения в карточке:</p><p dir="auto">•Назначение -домашняя одежда</p><p dir="auto">•Назначение белья/купальника -повседневное</p><p dir="auto">•Назначение костюма -домашний</p><p dir="auto"><br></p><p dir="auto"><strong>ДОМ</strong></p><ol dir="auto"><li>Для того, чтобы вы попали для комнаты, то в «Комната назначения» — «Ванная», «Гостиная», «Прихожая», «Спальня», «Детская»</li><li>В «Спальнях» есть подраздел «Постельного белья», чтобы товар попал в данный подраздел, необходимо указать «Назначение текстиля» –«Взрослым».</li><li>В «Детской» есть подраздел «Постельного белья», для добавления товара в подраздел необходимо указать «Назначение текстиля» –«Детям».</li><li>В «Отдых на природе», необходимо указать параметр «Назначение посуды» –«Походная и/или для пикника».</li></ol><p dir="auto"><strong>ДОСУГ И ТВОРЧЕСТВО</strong></p><p dir="auto">Во все разделы творчества и рукоделия артикулы попадают по параметру –«Вид творчества» вводится вид творчества</p><p dir="auto"><br></p><p dir="auto"><strong>КРАСОТА</strong></p><ol dir="auto"><li>Чтобы товары попали в раздел «Волосы», необходимо указать параметр «Назначение косметического средства» –«Для волос».</li><li>Чтобы товары попали в раздел «Детская декоративная косметика», необходимо указать параметр «Назначение косметического средства» –«Детская декоративная косметика».</li><li>Чтобы товары попали в раздел «Для загара», необходимо указать параметр «Действие» –«Солнцезащитное».</li><li>Чтобы товары попали в раздел «Для мам и малышей», необходимо указать параметр «Назначение косметического средства» –«Для мам и малышей».</li><li>Чтобы товары попали в раздел «Макияж», необходимо указать параметр «Назначение косметического средства» –«Для бровей»/«Для глаз»/«Для губ»/ «Для лица».</li><li>В раздел «Уход за кожей» попадают товары по двум параметрам —«Действие» и «Назначение косметического средства»</li></ol><p dir="auto">Действие – <em>против морщин; против акне; против пигментации; коррекция фигуры; против растяжек</em></p><p dir="auto">Назначение косметического средства –<em>для ванны и душа</em></p><p dir="auto">Назначение косметического средства –<em>интимная гигиена</em></p><p dir="auto">Назначение косметического средства –<em>для депиляции и эпиляции</em></p><p dir="auto">Назначение косметического средства –<em>для глаз; для бровей</em></p><p dir="auto">Назначение косметического средства –<em>для губ</em></p><p dir="auto">Назначение косметического средства –<em>для лица</em></p><p dir="auto">Назначение косметического средства –<em>для ног</em></p><p dir="auto">Назначение косметического средства –<em>для рук</em></p><p dir="auto">Назначение косметического средства –<em>для тела</em></p><p dir="auto">7. Чтобы товары попали в подраздел «Мужской линии»:</p><p dir="auto">-то для того чтобы попасть в «Для волос» и «Уход за лицом и телом», необходимо указать параметр «Назначение косметического средства» –«Мужская линия».</p><p dir="auto">-то для того чтобы попасть в «Для бороды и усов», необходимо указать «Назначение косметического средства» –«Для бороды и усов».</p><p dir="auto">-то для того чтобы попасть в «Для бритья», необходимо указать «Назначение косметического средства» –«Для бритья».</p><p dir="auto">8. Чтобы товары попали в раздел «Подарочных наборов», необходимо указать параметр «Тип подарка» –«Косметические наборы».</p><p dir="auto">9. Чтобы товары попали в подраздел «Красоты» –«Ногти», необходимо указать параметр «Назначение косметического средства» –«Для маникюра и педикюра».</p><p dir="auto">10. В подразделы:</p><p dir="auto">-Аптечная косметика</p><p dir="auto">-Израильская косметика</p><p dir="auto">-Корейские бренды</p><p dir="auto">-Органическая косметика</p><p dir="auto">-Профессиональная косметика</p><p dir="auto">товары попадают по параметру карточки «Раздел меню»</p><p dir="auto">11. Чтобы товары попали в подраздел «Красоты» –«Гигиена полости рта», необходимо указать параметр «Назначение косметического средства» –«Гигиена полости рта».</p><p dir="auto"><br></p><p dir="auto"><strong>ЭЛЕКТРОНИКА</strong></p><ol dir="auto"><li>Чтобы товар попал в подраздел определенной консоли, необходимо указать параметр:</li><li>-серия игровых консолей –PlayStation</li><li>-серия игровых консолей –Xbox</li><li>-серия игровых консолей –Nintendo</li><li>-серия игровых консолей –Sega; Dendy; nVidia Shield</li><li>Чтобы товар попал в подраздел «Держателей для смартфона», необходимо указать параметр –«Назначение товара» –«Смартфоны и мобильные телефоны».</li><li>Существуют общие категории, карточки по которым попадают в разделы при помощи своих дополнительных параметров. В данном случае это категории –«Держатель в авто» и «Док-станции». Чтобы товар попал в указанный подраздел –«Держатели в авто» –нужно указать параметр «Назначение держателя в авто» –«Для смартфонов».</li><li>Чтобы попасть в категорию предмета «Док-станции», необходимо указать параметр –«Назначение док-станции» –«Для смартфонов».</li><li>Чтобы товар попал в подраздел «Смартфоны и телефоны» –«Flash-накопители», необходимо указать в параметре «Назначение Flash-накопителя» –«Для смартфонов».</li><li>В разделе «Стекла и пленки» представлено две категории: Для добавления товара в категорию «Защитные пленки», необходимо указать в параметре «Назначение защитной пленки» –«Для смартфонов». Для добавления товара в категорию «Защитные стекла», необходимо указать параметр «Назначение защитного стекла» –«Для смартфонов».</li></ol><p dir="auto"><strong>ИГРУШКИ</strong></p><ol dir="auto"><li>В раздел «Конструкторов для малышей» попадают товары с дополнительным параметром –«Возрастная группа» –«Для малышей».</li><li>В раздел «Творчество и рукоделие» попадает товар с параметром «Возрастная группа» –«Для детей».</li></ol><p dir="auto"><br></p><p dir="auto"><strong>СПОРТ</strong></p><ol dir="auto"><li>Чтобы товар попал в подраздел «Фитнес и тренажеры», необходимо указать соответствующее «Спортивное назначение» –«Фитнес», «Тяжелая атлетика» или/и «Кроссфит»</li><li>Чтобы товар попал в подраздел «Велоспорт», необходимо заполнить в карточке параметр «Спортивное назначение» -«Велоспорт».</li><li>Чтобы товар попал в подраздел «Йога/пилатес», необходимо указать категорию, которая входит в раздел, и соответствующее «Спортивное назначение» –«Йога» и/или«Пилатес».</li><li>Чтобы товар попал в подраздел «Танцы/гимнастика», необходимо указать категорию, которая входит в раздел, и соответствующее «Спортивное назначение» –«Танцы»и/или «Гимнастика».</li><li>Чтобы товар попал в подраздел «Бег/ходьба», необходимо указать категорию, которая относится к разделу сайта «Спорт», и соответствующее «Спортивное назначение» –«Бег» и/или «Ходьба».</li><li>Чтобы товар попал в подраздел «Бадминтон/теннис», необходимо указать категорию, которая относится к разделу «Спорт», и соответствующее «Спортивное назначение» –«Бадминтон», «Большой теннис» и/или «Настольный теннис».</li><li>Чтобы товар попал в подраздел клубной атрибутики, необходимо в параметре «Команда» указать соответствующий клуб.</li><li>Для категорий «Самокаты/Ролики/Скейтборды» необходимо указать параметр –«Спортивное назначение» –«Скейтбординг» и/или «Самокаты», и/или «Роликовые коньки».</li><li>Чтобы товар попал в подраздел, необходимо указать категорию, которая входит в раздел «Спорт», и соответствующий параметр:</li></ol><p dir="auto">-Спортивное назначение –рыбная ловля летняя</p><p dir="auto">-Спортивное назначение –рыбная ловля зимняя</p><p dir="auto">-Спортивное назначение –охота</p><p dir="auto">10. Чтобы товар попал в подраздел, необходимо указать категорию, которая входит в раздел «Спорт», и соответствующее спортивное назначение –«Туризм».</p><p dir="auto">Исключение –«Походная кухня».</p><p dir="auto">В данный раздел попадают товары с дополнительными параметрами:</p><p dir="auto">-Назначение посуды –для пикника и/или походная</p><p dir="auto">-Место применения –для пикника</p><p dir="auto"><br></p><p dir="auto"><strong>ЗООТОВАРЫ</strong></p><p dir="auto">Чтобы товар попал в определенный подраздел «Зоотоваров», необходимо указать соответствующий параметр (параметр ведет товар в конкретный подраздел):</p><p dir="auto">-Вид животного –для собак</p><p dir="auto">-Вид животного –для кошей</p><p dir="auto">-Вид животного –для птиц</p><p dir="auto">-Вид животного –для лошадей</p><p dir="auto">-Вид животного –для рыб</p><p dir="auto">-Вид животного –для рептилий</p><p dir="auto">-Вид животного –для грызунов и хорьков</p><p dir="auto"><br></p><p dir="auto"><strong>ЮВЕЛИРНЫЕ ИЗДЕЛИЯ</strong></p><p dir="auto">Почти во все подразделы «Ювелирных изделий» товары попадают в соответствии с указанной в карточке категорией. Исключение составляют три выделенных подраздела: они отбирают товар по указанным в карточке параметрам (Состав ювелирного изделия).</p><ol dir="auto"><li>Чтобы товар попал в подраздел «Украшений из керамики», необходимо указать параметр «Состав ювелирного изделия» –«Керамика».</li><li>Чтобы товар попал в подраздел «Украшений из серебра», необходимо указать параметр «Состав ювелирного изделия» –«Серебро».</li><li>Чтобы товар попал в подраздел «Украшений из золота», необходимо указать параметр «Состав ювелирного изделия» –«Золото желтое», «Золото белое», «Золото красное», «Золото розовое», «Золото черное», «Золото коллоидное».</li></ol><figure contenteditable="false"><div class="figure_wrapper" bis_skin_checked="1"><div class="iframe_wrap" bis_skin_checked="1"><div class="iframe_helper" style="padding-top: 56.2319%;" bis_skin_checked="1"><iframe src="./10_files/youtube.html" width="640" height="360" frameborder="0" allowtransparency="true" allowfullscreen="true" scrolling="no"></iframe></div></div></div><span class="cursor_wrapper" contenteditable="true"></span><figcaption dir="auto" class="editable_text" data-placeholder="Caption (optional)"></figcaption></figure><p dir="auto"><br></p><h3 dir="auto" id="Порядок-действий-для-заполнения-характеристик-товара-на-вайлдберриз.">Порядок действий для заполнения <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">характеристик товара</a> на вайлдберриз.</h3><p dir="auto"><br></p><ul dir="auto"><li>1</li><li>Сбор семантического ядра (ключевых слов) в <a href="https://marpla.ru/?ref=065a8e52" target="_blank">Марпла</a> для своего товара на вайлдберриз.</li><li>Тема рассмотрена в соответствующем уроке.</li><li>2</li><li>Ознакомление с инструкцией по заполнению от <a href="https://disk.yandex.ru/d/9bxNsSwvLzFScA" target="_blank">wildberries</a>.</li><li>Если товар из популярной категории, там все написано.</li><li>3</li><li>Пытаемся прописать или выбрать <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">ключевые слова</a> из списка.</li><li>Если в характеристиках есть вариант с ключевыми словами из нашего списка, то в первую очередь используем их.</li><li>Затем смотрим, есть ли возможность вписать что-то самостоятельно.</li><li>Не пишем лишнего, размеры строго правильные.</li></ul><p dir="auto"><br></p><p dir="auto"><br></p></div><div class="ql-clipboard" contenteditable="true" tabindex="-1" bis_skin_checked="1"></div><div id="_tl_link_tooltip" class="tl_link_tooltip" bis_skin_checked="1"></div><div id="_tl_tooltip" class="tl_tooltip" bis_skin_checked="1">
+            <div class="buttons" bis_skin_checked="1">
+              <span class="button_hover"></span>
+              <span class="button_group"><!--
+             --><button id="_bold_button"></button><!--
+             --><button id="_italic_button"></button><!--
+             --><button id="_link_button"></button><!--
+           --></span><!--
+           --><span class="button_group"><!--
+             --><button id="_header_button"></button><!--
+             --><button id="_subheader_button"></button><!--
+             --><button id="_quote_button"></button><!--
+           --></span>
+            </div>
+            <div class="prompt" bis_skin_checked="1">
+              <span class="close"></span>
+              <div class="prompt_input_wrap" bis_skin_checked="1"><input type="url" class="prompt_input"></div>
+            </div>
+          </div><div id="_tl_blocks" class="tl_blocks" bis_skin_checked="1">
+            <div class="buttons" bis_skin_checked="1">
+              <button id="_image_button"></button><!--
+           --><button id="_embed_button"></button>
+            </div>
+          </div></article>
+          
+          
+          
+          <aside class="tl_article_buttons">
+            <div class="account account_top" bis_skin_checked="1"></div>
+            <button id="_edit_button" class="button edit_button">Edit</button><!--
+         --><button id="_publish_button" class="button publish_button">Publish</button>
+            <div class="account account_bottom" bis_skin_checked="1"></div>
+            <div id="_error_msg" class="error_msg" bis_skin_checked="1"></div>
+          </aside>
+        </main>
+      </div>
+    </div>
+    <div id="_tl_alerts" class="tl_alerts" bis_skin_checked="1"></div>
+    
+    <script>var T={"apiUrl":"https:\/\/edit.telegra.ph","datetime":1677137239,"pageId":"36f25f08735b8568bf57b","editable":true};(function(){var b=document.querySelector('time');if(b&&T.datetime){var a=new Date(1E3*T.datetime),d='January February March April May June July August September October November December'.split(' ')[a.getMonth()],c=a.getDate();b.innerText=d+' '+(10>c?'0':'')+c+', '+a.getFullYear()}})();</script>
+    <script src="./10_files/jquery.min.js"></script>
+    <script src="./10_files/jquery.selection.min.js"></script>
+    <script src="./10_files/autosize.min.js"></script>
+    <script src="./10_files/load-image.all.min.js"></script>
+    <script src="./10_files/quill.min.js"></script>
+    <script src="./10_files/core.min.js"></script>
+    <script async="" src="./10_files/_websync_"></script>
+  
+</body></html>

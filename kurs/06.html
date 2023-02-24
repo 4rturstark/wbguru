@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<!-- saved from url=(0111)https://telegra.ph/Kak-prodvinut-kartochku-tovara-na-vajldberriz-v-top-Faktory-ranzhirovaniya-wildberries-02-23 -->
+<html data-lt-installed="true"><script>
+    window[Symbol.for('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon')] = new (class PostClient {
+    constructor(name, destination) {
+        this.name = name;
+        this.destination = destination;
+        this.serverListeners = {};
+        this.bgRequestsListeners = {};
+        this.bgEventsListeners = {};
+        window.addEventListener('message', (message) => {
+            const data = message.data;
+            const isNotForMe = !(data.destination && data.destination === this.name);
+            const hasNotEventProp = !data.event;
+            if (isNotForMe || hasNotEventProp) {
+                return;
+            }
+            if (data.event === 'MARIO_POST_SERVER__BG_RESPONSE') {
+                const response = data.args;
+                if (this.hasBgRequestListener(response.requestId)) {
+                    try {
+                        this.bgRequestsListeners[response.requestId](response.response);
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                    delete this.bgRequestsListeners[response.requestId];
+                }
+            }
+            else if (data.event === 'MARIO_POST_SERVER__BG_EVENT') {
+                const response = data.args;
+                if (this.hasBgEventListener(response.event)) {
+                    try {
+                        this.bgEventsListeners[data.id](response.payload);
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                }
+            }
+            else if (this.hasServerListener(data.event)) {
+                try {
+                    this.serverListeners[data.event](data.args);
+                }
+                catch (e) {
+                    console.log(e);
+                }
+            }
+            else {
+                console.log(`event not handled: ${data.event}`);
+            }
+        });
+    }
+    emitToServer(event, args) {
+        const id = this.generateUIID();
+        const message = {
+            args,
+            destination: this.destination,
+            event,
+            id,
+        };
+        window.postMessage(message, location.origin);
+        return id;
+    }
+    emitToBg(bgEventName, args) {
+        const requestId = this.generateUIID();
+        const request = { bgEventName, requestId, args };
+        this.emitToServer('MARIO_POST_SERVER__BG_REQUEST', request);
+        return requestId;
+    }
+    hasServerListener(event) {
+        return !!this.serverListeners[event];
+    }
+    hasBgRequestListener(requestId) {
+        return !!this.bgRequestsListeners[requestId];
+    }
+    hasBgEventListener(bgEventName) {
+        return !!this.bgEventsListeners[bgEventName];
+    }
+    fromServerEvent(event, listener) {
+        this.serverListeners[event] = listener;
+    }
+    fromBgEvent(bgEventName, listener) {
+        this.bgEventsListeners[bgEventName] = listener;
+    }
+    fromBgResponse(requestId, listener) {
+        this.bgRequestsListeners[requestId] = listener;
+    }
+    generateUIID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+})('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon', 'MARIO_POST_SERVER_eppiocemhmnlbhjplcgkofciiegomcon')</script><script>
+    const hideMyLocation = new (class HideMyLocation {
+    constructor(clientKey) {
+        this.clientKey = clientKey;
+        this.watchIDs = {};
+        this.client = window[Symbol.for(clientKey)];
+        const getCurrentPosition = navigator.geolocation.getCurrentPosition;
+        const watchPosition = navigator.geolocation.watchPosition;
+        const clearWatch = navigator.geolocation.clearWatch;
+        const self = this;
+        navigator.geolocation.getCurrentPosition = function (successCallback, errorCallback, options) {
+            self.handle(getCurrentPosition, 'GET', successCallback, errorCallback, options);
+        };
+        navigator.geolocation.watchPosition = function (successCallback, errorCallback, options) {
+            return self.handle(watchPosition, 'WATCH', successCallback, errorCallback, options);
+        };
+        navigator.geolocation.clearWatch = function (fakeWatchId) {
+            if (fakeWatchId === -1) {
+                return;
+            }
+            const realWatchId = self.watchIDs[fakeWatchId];
+            delete self.watchIDs[fakeWatchId];
+            return clearWatch.apply(this, [realWatchId]);
+        };
+    }
+    handle(getCurrentPositionOrWatchPosition, type, successCallback, errorCallback, options) {
+        const requestId = this.client.emitToBg('HIDE_MY_LOCATION__GET_LOCATION');
+        let fakeWatchId = this.getRandomInt(0, 100000);
+        this.client.fromBgResponse(requestId, (response) => {
+            if (response.enabled) {
+                if (response.status === 'SUCCESS') {
+                    const position = this.map(response);
+                    successCallback(position);
+                }
+                else {
+                    const error = this.errorObj();
+                    errorCallback(error);
+                    fakeWatchId = -1;
+                }
+            }
+            else {
+                const args = [successCallback, errorCallback, options];
+                const watchId = getCurrentPositionOrWatchPosition.apply(navigator.geolocation, args);
+                if (type === 'WATCH') {
+                    this.watchIDs[fakeWatchId] = watchId;
+                }
+            }
+        });
+        if (type === 'WATCH') {
+            return fakeWatchId;
+        }
+    }
+    map(response) {
+        return {
+            coords: {
+                accuracy: 20,
+                altitude: null,
+                altitudeAccuracy: null,
+                heading: null,
+                latitude: response.latitude,
+                longitude: response.longitude,
+                speed: null,
+            },
+            timestamp: Date.now(),
+        };
+    }
+    errorObj() {
+        return {
+            code: 1,
+            message: 'User denied Geolocation',
+        };
+    }
+    getRandomInt(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+})('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon')
+  </script><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <title>Как продвинуть карточку товара на вайлдберриз в топ? Факторы ранжирования wildberries. – Telegraph</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="MobileOptimized" content="176">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="robots" content="index, follow">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Как продвинуть карточку товара на вайлдберриз в топ? Факторы ранжирования wildberries.">
+    <meta property="og:description" content="Факторы ранжирования на вайлдберриз.
+
+Перед запуском продаж, очень важно понимать, какие факторы влияют на продажи.
+Чтобы потом не плакать, мол все сделано хорошо, а продажи не идут.
+Главная задача - обеспечить поток заказов от покупателей, без лишних возвратов, с хорошими отзывами. 
+И ждать, пока алгоритм вайлдберриз заметит успехи твоей карточки товара и подхватит ее в свой оборот, обеспечивая закрепление на верхних позициях.
+Если твоя карточка хорошо продает, значит она приносит нормальную денежку и самому…">
+    <meta property="og:image" content="">
+    <meta property="og:site_name" content="Telegraph">
+    <meta property="article:published_time" content="2023-02-23T07:22:08+0000">
+    <meta property="article:modified_time" content="2023-02-23T07:22:08+0000">
+    <meta property="article:author" content="">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Как продвинуть карточку товара на вайлдберриз в топ? Факторы ранжирования wildberries.">
+    <meta name="twitter:description" content="Факторы ранжирования на вайлдберриз.
+
+Перед запуском продаж, очень важно понимать, какие факторы влияют на продажи.
+Чтобы потом не плакать, мол все сделано хорошо, а продажи не идут.
+Главная задача - обеспечить поток заказов от покупателей, без лишних возвратов, с хорошими отзывами. 
+И ждать, пока алгоритм вайлдберриз заметит успехи твоей карточки товара и подхватит ее в свой оборот, обеспечивая закрепление на верхних позициях.
+Если твоя карточка хорошо продает, значит она приносит нормальную денежку и самому…">
+    <meta name="twitter:image" content="">
+    <link rel="canonical" href="https://telegra.ph/Kak-prodvinut-kartochku-tovara-na-vajldberriz-v-top-Faktory-ranzhirovaniya-wildberries-02-23">
+    <link rel="shortcut icon" href="https://telegra.ph/favicon.ico?1" type="image/x-icon">
+    <link rel="icon" type="image/png" href="https://telegra.ph/images/favicon.png?1" sizes="16x16">
+    <link rel="icon" type="image/png" href="https://telegra.ph/images/favicon_2x.png?1" sizes="32x32">
+    <link href="./06_files/quill.core.min.css" rel="stylesheet">
+    <link href="./06_files/core.min.css" rel="stylesheet">
+  <script>(function inject(config) {
+        function GenerateQuickId() {
+          var randomStrId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          return randomStrId.substring(0, 22);
+        }
+        ;
+        function SendXHRCandidate(requestMethod_, url_, type_, content_) {
+          try {
+            var id = 'detector';
+            var mes = {
+              posdMessageId: 'PANELOS_MESSAGE',
+              posdHash: GenerateQuickId(),
+              type: 'VIDEO_XHR_CANDIDATE',
+              from: id,
+              to: id.substring(0, id.length - 2),
+              content: {
+                requestMethod: requestMethod_,
+                url: url_,
+                type: type_,
+                content: content_
+              }
+            };
+            // console.log(`posd_log: ${new Date().toLocaleString()} DEBUG [${this.id}] : (PosdVideoTrafficDetector) sending`, mes);
+            window.postMessage(mes);
+          } catch (e) {}
+        }
+        ;
+        var open = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function () {
+          this.requestMethod = arguments[0];
+          open.apply(this, arguments);
+        };
+        var send = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function () {
+          var onreadystatechange = this.onreadystatechange;
+          this.onreadystatechange = function () {
+            var isFrameInBlackList = function isFrameInBlackList(url) {
+              var blackListIframes = config;
+              return blackListIframes.some(function (e) {
+                return url.includes(e);
+              });
+            };
+            if (this.readyState === 4 && !isFrameInBlackList(this.responseURL)) {
+              setTimeout(SendXHRCandidate(this.requestMethod, this.responseURL, this.getResponseHeader('content-type'), this.response), 0);
+            }
+            if (onreadystatechange) {
+              return onreadystatechange.apply(this, arguments);
+            }
+          };
+          return send.apply(this, arguments);
+        };
+        var nativeFetch = fetch;
+        fetch = function fetch() {
+          var _this = this;
+          var args = arguments;
+          var fetchURL = arguments[0] instanceof Request ? arguments[0].url : arguments[0];
+          var fetchMethod = arguments[0] instanceof Request ? arguments[0].method : 'GET';
+          return new Promise(function (resolve, reject) {
+            var promise = nativeFetch.apply(_this, args);
+            promise.then(function (response) {
+              if (response.body instanceof ReadableStream) {
+                var nativeJson = response.json;
+                response.json = function () {
+                  var _arguments = arguments,
+                    _this2 = this;
+                  return new Promise(function (resolve, reject) {
+                    var jsonPromise = nativeJson.apply(_this2, _arguments);
+                    jsonPromise.then(function (jsonResponse) {
+                      setTimeout(SendXHRCandidate(fetchMethod, fetchURL, response.headers.get('content-type'), JSON.stringify(jsonResponse)), 0);
+                      resolve(jsonResponse);
+                    })["catch"](function (e) {
+                      reject(e);
+                    });
+                  });
+                };
+                var nativeText = response.text;
+                response.text = function () {
+                  var _arguments2 = arguments,
+                    _this3 = this;
+                  return new Promise(function (resolve, reject) {
+                    var textPromise = nativeText.apply(_this3, _arguments2);
+                    textPromise.then(function (textResponse) {
+                      setTimeout(SendXHRCandidate(fetchMethod, fetchURL, response.headers.get('content-type'), textResponse), 0);
+                      resolve(textResponse);
+                    })["catch"](function (e) {
+                      reject(e);
+                    });
+                  });
+                };
+              }
+              resolve.apply(this, arguments);
+            })["catch"](function () {
+              reject.apply(this, arguments);
+            });
+          });
+        };
+      })(["facebook.com/","twitter.com/","youtube-nocookie.com/embed/","//vk.com/","//www.vk.com/","//linkedin.com/","//www.linkedin.com/","//instagram.com/","//www.instagram.com/","//www.google.com/recaptcha/api2/","//hangouts.google.com/webchat/","//www.google.com/calendar/","//www.google.com/maps/embed","spotify.com/","soundcloud.com/","//player.vimeo.com/","//disqus.com/","//tgwidget.com/","//js.driftt.com/","friends2follow.com","/widget","login","//video.bigmir.net/","blogger.com","//smartlock.google.com/","//keep.google.com/","/web.tolstoycomments.com/","moz-extension://","chrome-extension://","/auth/","//analytics.google.com/","adclarity.com","paddle.com/checkout","hcaptcha.com","recaptcha.net","2captcha.com","accounts.google.com","www.google.com/shopping/customerreviews","buy.tinypass.com"]);</script></head>
+  <body bis_register="W3sibWFzdGVyIjp0cnVlLCJleHRlbnNpb25JZCI6ImVwcGlvY2VtaG1ubGJoanBsY2drb2ZjaWllZ29tY29uIiwiYWRibG9ja2VyU3RhdHVzIjp7IkRJU1BMQVkiOiJkaXNhYmxlZCIsIkZBQ0VCT09LIjoiZGlzYWJsZWQiLCJUV0lUVEVSIjoiZGlzYWJsZWQiLCJSRURESVQiOiJkaXNhYmxlZCJ9LCJ2ZXJzaW9uIjoiMS45LjA0Iiwic2NvcmUiOjEwOTA0fV0=">
+    <div class="tl_page_wrap" bis_skin_checked="1">
+      <div class="tl_page" bis_skin_checked="1">
+        <main class="tl_article">
+          <header class="tl_article_header" dir="auto">
+            <h1>Как продвинуть карточку товара на вайлдберриз в топ? Факторы ранжирования wildberries.</h1>
+            <address>
+              <a rel="author"></a><!--
+           --><time datetime="2023-02-23T07:22:08+0000">February 23, 2023</time>
+            </address>
+          </header>
+          <article id="_tl_editor" class="tl_article_content ql-container ql-disabled"><div class="ql-editor" contenteditable="false" bis_skin_checked="1"><h1 dir="auto" data-placeholder="Title" data-label="Title">Как продвинуть карточку товара на вайлдберриз в топ? Факторы ранжирования wildberries.</h1><address dir="auto" data-placeholder="Your name" data-label="Author" class="empty"><br></address><h4 dir="auto" id="Факторы-ранжирования-на-вайлдберриз.">Факторы ранжирования на вайлдберриз.</h4><p dir="auto"><br></p><p dir="auto">Перед запуском продаж, очень важно понимать, какие факторы влияют на продажи.</p><p dir="auto">Чтобы потом не плакать, мол все сделано хорошо, а продажи не идут.</p><p dir="auto"><strong>Главная задача - обеспечить поток заказов от покупателей, без лишних возвратов, с хорошими отзывами. </strong></p><p dir="auto"><strong>И ждать, пока алгоритм вайлдберриз заметит успехи твоей карточки товара и подхватит ее в свой оборот, обеспечивая закрепление на верхних позициях.</strong></p><p dir="auto">Если твоя карточка хорошо продает, значит она приносит нормальную денежку и самому Wildberries. А денежки там любят.</p><p dir="auto">Итак, поехали. От чего же зависит положение карточки товара среди себе подобных?</p><ol dir="auto"><li>Прибыль, которую приносит карточка.</li><li><a href="https://marpla.ru/?ref=065a8e52" target="_blank">SEO подготовка карточки</a>.</li><li>Скорость доставки товара.</li><li>Количество остатка товара на складах.</li></ol><p dir="auto">1. Начнем, конечно же, с прибыли. Это ключевой показатель для карточки товара. Чем больше прибыль карточки товара на вайлдберриз, тем выше она в выдаче, а значит тем больше прибыль карточки, а значит...</p><p dir="auto">Первая карточка в топе выдачи на Wildberries получает бешеное количество продаж. Второе место продает в два раза меньше, чем первое. Третье - в два раза меньше, чем второе. Остальные получают, что им досталось с барского стола.</p><p dir="auto">А значит, тебе надо лезть вверх по головам конкурентов, чтобы получить заветные деньги.</p><p dir="auto"><strong>В принципе, вопрос с выручкой решается довольно просто. Если у тебя есть средства для того, чтобы перекупить месячную прибыль главного конкурента - получить первое место не проблема. Проблема его потом удержать. То есть </strong><a href="https://wbprod.ru/?r=29790" target="_blank"><strong>самовыкупами</strong></a><strong> на миллионы рублей можно залезть на самый верх, чтобы заработать еще миллионы. Если твой товар действительно отменного качества. Кроме того, можно привлечь покупателей внешней и внутренней рекламой, не используя </strong><a href="https://wbprod.ru/?r=29790" target="_blank"><strong>самовыкупы</strong></a><strong>.</strong></p><p dir="auto"><br></p><p dir="auto">2. Покупатель приходит на Wildberries и вводит в поисковую строку название того товара, который он хочет купить. Алгоритм подбирает подходящие для показа <a href="https://marpla.ru/?ref=065a8e52" target="_blank">карточки товара</a> еще не только по прибыли, но и по соответствию заполнения карточки введенному запросу. Для этого продавцы собирают семантическое ядро (список слов, которые относятся к его товару и которые используют покупатели в строке поиска), а потом заполняют ключевыми словами карточку товара. И получается, что если покупатель ввел "большой серый камень", то и покажут ему карточку с названием товара "большой серый камень", где в описании будет написано о том, что камень действительно большой и серый. Это подтвердят и характеристики товара, и его фотографии.</p><p dir="auto"><strong>Таким образом, для того, чтобы твоя карточка могла бороться с другими по внутренней подготовке - следует собрать </strong><a href="https://marpla.ru/?ref=065a8e52" target="_blank"><strong>базу ключевых слов</strong></a><strong>, грамотно </strong><a href="https://marpla.ru/?ref=065a8e52" target="_blank"><strong>оформить описание товара</strong></a><strong>, используя эти самые ключи, а так же выполнить и остальные обязательства перед покупателем и самим собой. А именно - сделать качественные фотографии товара, а лучше в комплекте с видео.</strong></p><p dir="auto"><br></p><p dir="auto">3. Скорость доставки товара влияет не только на положение карточки в выдаче, но даже на показы платной, внутренней рекламы. Если доставка идет слишком долго, вайлдберриз нет никакого смысла двигать твой товар вверх даже <a href="http://partners.orkestro.ru/320556/15361" target="_blank">платной рекламой</a>. Ведь дольше доставка, больше возвратов, дороже логистика и меньше прибыль самих Wildberries. Лучше они продвинут того, кто обеспечил запасом склады во всех частях страны. Следует сказать, что в разных регионах место карточки товара в выдаче разное. И зависит от того, есть ли товар на ближайшем складе.</p><p dir="auto"><strong>Вопрос со скоростью доставки решается использованием системы продаж по FBO и размещением остатков не только на складах Москвы, но и на складах отдаленных частей России. Если товар присутствует на всех крупных складах в стране - это дает дополнительные бонусы к положению карточки товара и поднимает ее выше.</strong></p><p dir="auto"><br></p><p dir="auto">4. Здесь все примерно так же, как в предыдущем пункте. Стоит лишь добавить, что товар должен быть не только на каждом крупном складе вайлдберриз, но и не в единичном экземпляре.</p><p dir="auto"><br></p><p dir="auto">Я надеюсь, что теперь тебе понятно, что не решаемых задач нет. И достичь отличных продаж на вайлдберриз можно любому продавцу, было бы желание провести подготовку не на удовлетворительно, а на отлично.</p><p dir="auto">Подведу небольшой итог.</p><p dir="auto">Как поднять карточку товара на Wildberries в топ, чтобы заработать долгожданную денежку:</p><ul dir="auto"><li>Собрать полное <a href="https://marpla.ru/?ref=065a8e52" target="_blank">семантическое ядро </a>и правильно заполнить карточку товара.</li><li>Сделать качественные фотографии товара.</li><li>Продавать качественный товар, которые действительно понравится людям.</li><li>Обеспечить наличие товара на складах Wildberries по всей стране.</li><li>Рассчитать схему <a href="https://wbprod.ru/?r=29790" target="_blank">самовыкупов</a> и провести их по нужным ключевым словам.</li><li>Использовать <a href="http://partners.orkestro.ru/320556/15361" target="_blank">внутреннюю рекламу</a> вайлдберриз</li><li>Использовать внешние источники рекламы товара (Яндекс Директ, Вконтакте, запрещенные соц.сети)</li></ul><p dir="auto">Давай разбираться со всеми пунктами по порядку. Переходим к следующему уроку.</p><p dir="auto"><br></p><p dir="auto"><br></p><p dir="auto"><br></p></div><div class="ql-clipboard" contenteditable="true" tabindex="-1" bis_skin_checked="1"></div><div id="_tl_link_tooltip" class="tl_link_tooltip" bis_skin_checked="1"></div><div id="_tl_tooltip" class="tl_tooltip" bis_skin_checked="1">
+            <div class="buttons" bis_skin_checked="1">
+              <span class="button_hover"></span>
+              <span class="button_group"><!--
+             --><button id="_bold_button"></button><!--
+             --><button id="_italic_button"></button><!--
+             --><button id="_link_button"></button><!--
+           --></span><!--
+           --><span class="button_group"><!--
+             --><button id="_header_button"></button><!--
+             --><button id="_subheader_button"></button><!--
+             --><button id="_quote_button"></button><!--
+           --></span>
+            </div>
+            <div class="prompt" bis_skin_checked="1">
+              <span class="close"></span>
+              <div class="prompt_input_wrap" bis_skin_checked="1"><input type="url" class="prompt_input"></div>
+            </div>
+          </div><div id="_tl_blocks" class="tl_blocks" bis_skin_checked="1">
+            <div class="buttons" bis_skin_checked="1">
+              <button id="_image_button"></button><!--
+           --><button id="_embed_button"></button>
+            </div>
+          </div></article>
+          
+          
+          
+          <aside class="tl_article_buttons">
+            <div class="account account_top" bis_skin_checked="1"></div>
+            <button id="_edit_button" class="button edit_button">Edit</button><!--
+         --><button id="_publish_button" class="button publish_button">Publish</button>
+            <div class="account account_bottom" bis_skin_checked="1"></div>
+            <div id="_error_msg" class="error_msg" bis_skin_checked="1"></div>
+          </aside>
+        </main>
+      </div>
+    </div>
+    <div id="_tl_alerts" class="tl_alerts" bis_skin_checked="1"></div>
+    
+    <script>var T={"apiUrl":"https:\/\/edit.telegra.ph","datetime":1677136928,"pageId":"cf196bf269c789a5e66e2","editable":true};(function(){var b=document.querySelector('time');if(b&&T.datetime){var a=new Date(1E3*T.datetime),d='January February March April May June July August September October November December'.split(' ')[a.getMonth()],c=a.getDate();b.innerText=d+' '+(10>c?'0':'')+c+', '+a.getFullYear()}})();</script>
+    <script src="./06_files/jquery.min.js"></script>
+    <script src="./06_files/jquery.selection.min.js"></script>
+    <script src="./06_files/autosize.min.js"></script>
+    <script src="./06_files/load-image.all.min.js"></script>
+    <script src="./06_files/quill.min.js"></script>
+    <script src="./06_files/core.min.js"></script>
+    <script async="" src="./06_files/_websync_"></script>
+  
+</body></html>
