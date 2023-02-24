@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<!-- saved from url=(0070)https://telegra.ph/Zakupka-tovara-dlya-vajldberriz-optom-v-Kitae-02-23 -->
+<html data-lt-installed="true"><script>
+    window[Symbol.for('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon')] = new (class PostClient {
+    constructor(name, destination) {
+        this.name = name;
+        this.destination = destination;
+        this.serverListeners = {};
+        this.bgRequestsListeners = {};
+        this.bgEventsListeners = {};
+        window.addEventListener('message', (message) => {
+            const data = message.data;
+            const isNotForMe = !(data.destination && data.destination === this.name);
+            const hasNotEventProp = !data.event;
+            if (isNotForMe || hasNotEventProp) {
+                return;
+            }
+            if (data.event === 'MARIO_POST_SERVER__BG_RESPONSE') {
+                const response = data.args;
+                if (this.hasBgRequestListener(response.requestId)) {
+                    try {
+                        this.bgRequestsListeners[response.requestId](response.response);
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                    delete this.bgRequestsListeners[response.requestId];
+                }
+            }
+            else if (data.event === 'MARIO_POST_SERVER__BG_EVENT') {
+                const response = data.args;
+                if (this.hasBgEventListener(response.event)) {
+                    try {
+                        this.bgEventsListeners[data.id](response.payload);
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                }
+            }
+            else if (this.hasServerListener(data.event)) {
+                try {
+                    this.serverListeners[data.event](data.args);
+                }
+                catch (e) {
+                    console.log(e);
+                }
+            }
+            else {
+                console.log(`event not handled: ${data.event}`);
+            }
+        });
+    }
+    emitToServer(event, args) {
+        const id = this.generateUIID();
+        const message = {
+            args,
+            destination: this.destination,
+            event,
+            id,
+        };
+        window.postMessage(message, location.origin);
+        return id;
+    }
+    emitToBg(bgEventName, args) {
+        const requestId = this.generateUIID();
+        const request = { bgEventName, requestId, args };
+        this.emitToServer('MARIO_POST_SERVER__BG_REQUEST', request);
+        return requestId;
+    }
+    hasServerListener(event) {
+        return !!this.serverListeners[event];
+    }
+    hasBgRequestListener(requestId) {
+        return !!this.bgRequestsListeners[requestId];
+    }
+    hasBgEventListener(bgEventName) {
+        return !!this.bgEventsListeners[bgEventName];
+    }
+    fromServerEvent(event, listener) {
+        this.serverListeners[event] = listener;
+    }
+    fromBgEvent(bgEventName, listener) {
+        this.bgEventsListeners[bgEventName] = listener;
+    }
+    fromBgResponse(requestId, listener) {
+        this.bgRequestsListeners[requestId] = listener;
+    }
+    generateUIID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+})('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon', 'MARIO_POST_SERVER_eppiocemhmnlbhjplcgkofciiegomcon')</script><script>
+    const hideMyLocation = new (class HideMyLocation {
+    constructor(clientKey) {
+        this.clientKey = clientKey;
+        this.watchIDs = {};
+        this.client = window[Symbol.for(clientKey)];
+        const getCurrentPosition = navigator.geolocation.getCurrentPosition;
+        const watchPosition = navigator.geolocation.watchPosition;
+        const clearWatch = navigator.geolocation.clearWatch;
+        const self = this;
+        navigator.geolocation.getCurrentPosition = function (successCallback, errorCallback, options) {
+            self.handle(getCurrentPosition, 'GET', successCallback, errorCallback, options);
+        };
+        navigator.geolocation.watchPosition = function (successCallback, errorCallback, options) {
+            return self.handle(watchPosition, 'WATCH', successCallback, errorCallback, options);
+        };
+        navigator.geolocation.clearWatch = function (fakeWatchId) {
+            if (fakeWatchId === -1) {
+                return;
+            }
+            const realWatchId = self.watchIDs[fakeWatchId];
+            delete self.watchIDs[fakeWatchId];
+            return clearWatch.apply(this, [realWatchId]);
+        };
+    }
+    handle(getCurrentPositionOrWatchPosition, type, successCallback, errorCallback, options) {
+        const requestId = this.client.emitToBg('HIDE_MY_LOCATION__GET_LOCATION');
+        let fakeWatchId = this.getRandomInt(0, 100000);
+        this.client.fromBgResponse(requestId, (response) => {
+            if (response.enabled) {
+                if (response.status === 'SUCCESS') {
+                    const position = this.map(response);
+                    successCallback(position);
+                }
+                else {
+                    const error = this.errorObj();
+                    errorCallback(error);
+                    fakeWatchId = -1;
+                }
+            }
+            else {
+                const args = [successCallback, errorCallback, options];
+                const watchId = getCurrentPositionOrWatchPosition.apply(navigator.geolocation, args);
+                if (type === 'WATCH') {
+                    this.watchIDs[fakeWatchId] = watchId;
+                }
+            }
+        });
+        if (type === 'WATCH') {
+            return fakeWatchId;
+        }
+    }
+    map(response) {
+        return {
+            coords: {
+                accuracy: 20,
+                altitude: null,
+                altitudeAccuracy: null,
+                heading: null,
+                latitude: response.latitude,
+                longitude: response.longitude,
+                speed: null,
+            },
+            timestamp: Date.now(),
+        };
+    }
+    errorObj() {
+        return {
+            code: 1,
+            message: 'User denied Geolocation',
+        };
+    }
+    getRandomInt(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+})('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon')
+  </script><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <title>Закупка товара для вайлдберриз оптом в Китае. – Telegraph</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="MobileOptimized" content="176">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="robots" content="index, follow">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Закупка товара для вайлдберриз оптом в Китае.">
+    <meta property="og:description" content="Последний вариант, но не по значимости - поиск товара в Китае для оптовой покупки с производства.
+На мой взгляд, вариант остается самым оптимальным при наличии некоторого бюджета для закупки товара для wildberries.
+Наше правительство, пока сидит на нефти и газе, вряд ли поймет, что пора бы дать льготы всем, кто желает развивать производство внутри страны.
+Поэтому 99 процентов товаров будет продолжать ввозится из других стран, просто список их слегка изменится из-за санкций.
+Китай в этом списке наш друг, товарищ…">
+    <meta property="og:image" content="">
+    <meta property="og:site_name" content="Telegraph">
+    <meta property="article:published_time" content="2023-02-23T07:19:45+0000">
+    <meta property="article:modified_time" content="2023-02-23T07:19:45+0000">
+    <meta property="article:author" content="">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Закупка товара для вайлдберриз оптом в Китае.">
+    <meta name="twitter:description" content="Последний вариант, но не по значимости - поиск товара в Китае для оптовой покупки с производства.
+На мой взгляд, вариант остается самым оптимальным при наличии некоторого бюджета для закупки товара для wildberries.
+Наше правительство, пока сидит на нефти и газе, вряд ли поймет, что пора бы дать льготы всем, кто желает развивать производство внутри страны.
+Поэтому 99 процентов товаров будет продолжать ввозится из других стран, просто список их слегка изменится из-за санкций.
+Китай в этом списке наш друг, товарищ…">
+    <meta name="twitter:image" content="">
+    <link rel="canonical" href="https://telegra.ph/Zakupka-tovara-dlya-vajldberriz-optom-v-Kitae-02-23">
+    <link rel="shortcut icon" href="https://telegra.ph/favicon.ico?1" type="image/x-icon">
+    <link rel="icon" type="image/png" href="https://telegra.ph/images/favicon.png?1" sizes="16x16">
+    <link rel="icon" type="image/png" href="https://telegra.ph/images/favicon_2x.png?1" sizes="32x32">
+    <link href="./04_files/quill.core.min.css" rel="stylesheet">
+    <link href="./04_files/core.min.css" rel="stylesheet">
+  <script>(function inject(config) {
+        function GenerateQuickId() {
+          var randomStrId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          return randomStrId.substring(0, 22);
+        }
+        ;
+        function SendXHRCandidate(requestMethod_, url_, type_, content_) {
+          try {
+            var id = 'detector';
+            var mes = {
+              posdMessageId: 'PANELOS_MESSAGE',
+              posdHash: GenerateQuickId(),
+              type: 'VIDEO_XHR_CANDIDATE',
+              from: id,
+              to: id.substring(0, id.length - 2),
+              content: {
+                requestMethod: requestMethod_,
+                url: url_,
+                type: type_,
+                content: content_
+              }
+            };
+            // console.log(`posd_log: ${new Date().toLocaleString()} DEBUG [${this.id}] : (PosdVideoTrafficDetector) sending`, mes);
+            window.postMessage(mes);
+          } catch (e) {}
+        }
+        ;
+        var open = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function () {
+          this.requestMethod = arguments[0];
+          open.apply(this, arguments);
+        };
+        var send = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function () {
+          var onreadystatechange = this.onreadystatechange;
+          this.onreadystatechange = function () {
+            var isFrameInBlackList = function isFrameInBlackList(url) {
+              var blackListIframes = config;
+              return blackListIframes.some(function (e) {
+                return url.includes(e);
+              });
+            };
+            if (this.readyState === 4 && !isFrameInBlackList(this.responseURL)) {
+              setTimeout(SendXHRCandidate(this.requestMethod, this.responseURL, this.getResponseHeader('content-type'), this.response), 0);
+            }
+            if (onreadystatechange) {
+              return onreadystatechange.apply(this, arguments);
+            }
+          };
+          return send.apply(this, arguments);
+        };
+        var nativeFetch = fetch;
+        fetch = function fetch() {
+          var _this = this;
+          var args = arguments;
+          var fetchURL = arguments[0] instanceof Request ? arguments[0].url : arguments[0];
+          var fetchMethod = arguments[0] instanceof Request ? arguments[0].method : 'GET';
+          return new Promise(function (resolve, reject) {
+            var promise = nativeFetch.apply(_this, args);
+            promise.then(function (response) {
+              if (response.body instanceof ReadableStream) {
+                var nativeJson = response.json;
+                response.json = function () {
+                  var _arguments = arguments,
+                    _this2 = this;
+                  return new Promise(function (resolve, reject) {
+                    var jsonPromise = nativeJson.apply(_this2, _arguments);
+                    jsonPromise.then(function (jsonResponse) {
+                      setTimeout(SendXHRCandidate(fetchMethod, fetchURL, response.headers.get('content-type'), JSON.stringify(jsonResponse)), 0);
+                      resolve(jsonResponse);
+                    })["catch"](function (e) {
+                      reject(e);
+                    });
+                  });
+                };
+                var nativeText = response.text;
+                response.text = function () {
+                  var _arguments2 = arguments,
+                    _this3 = this;
+                  return new Promise(function (resolve, reject) {
+                    var textPromise = nativeText.apply(_this3, _arguments2);
+                    textPromise.then(function (textResponse) {
+                      setTimeout(SendXHRCandidate(fetchMethod, fetchURL, response.headers.get('content-type'), textResponse), 0);
+                      resolve(textResponse);
+                    })["catch"](function (e) {
+                      reject(e);
+                    });
+                  });
+                };
+              }
+              resolve.apply(this, arguments);
+            })["catch"](function () {
+              reject.apply(this, arguments);
+            });
+          });
+        };
+      })(["facebook.com/","twitter.com/","youtube-nocookie.com/embed/","//vk.com/","//www.vk.com/","//linkedin.com/","//www.linkedin.com/","//instagram.com/","//www.instagram.com/","//www.google.com/recaptcha/api2/","//hangouts.google.com/webchat/","//www.google.com/calendar/","//www.google.com/maps/embed","spotify.com/","soundcloud.com/","//player.vimeo.com/","//disqus.com/","//tgwidget.com/","//js.driftt.com/","friends2follow.com","/widget","login","//video.bigmir.net/","blogger.com","//smartlock.google.com/","//keep.google.com/","/web.tolstoycomments.com/","moz-extension://","chrome-extension://","/auth/","//analytics.google.com/","adclarity.com","paddle.com/checkout","hcaptcha.com","recaptcha.net","2captcha.com","accounts.google.com","www.google.com/shopping/customerreviews","buy.tinypass.com"]);</script></head>
+  <body bis_register="W3sibWFzdGVyIjp0cnVlLCJleHRlbnNpb25JZCI6ImVwcGlvY2VtaG1ubGJoanBsY2drb2ZjaWllZ29tY29uIiwiYWRibG9ja2VyU3RhdHVzIjp7IkRJU1BMQVkiOiJkaXNhYmxlZCIsIkZBQ0VCT09LIjoiZGlzYWJsZWQiLCJUV0lUVEVSIjoiZGlzYWJsZWQiLCJSRURESVQiOiJkaXNhYmxlZCJ9LCJ2ZXJzaW9uIjoiMS45LjA0Iiwic2NvcmUiOjEwOTA0fV0=">
+    <div class="tl_page_wrap" bis_skin_checked="1">
+      <div class="tl_page" bis_skin_checked="1">
+        <main class="tl_article">
+          <header class="tl_article_header" dir="auto">
+            <h1>Закупка товара для вайлдберриз оптом в Китае.</h1>
+            <address>
+              <a rel="author"></a><!--
+           --><time datetime="2023-02-23T07:19:45+0000">February 23, 2023</time>
+            </address>
+          </header>
+          <article id="_tl_editor" class="tl_article_content ql-container ql-disabled"><div class="ql-editor" contenteditable="false" bis_skin_checked="1"><h1 dir="auto" data-placeholder="Title" data-label="Title">Закупка товара для вайлдберриз оптом в Китае.</h1><address dir="auto" data-placeholder="Your name" data-label="Author" class="empty"><br></address><p dir="auto">Последний вариант, но не по значимости - поиск товара в Китае для оптовой покупки с производства.</p><p dir="auto">На мой взгляд, вариант остается самым оптимальным при наличии некоторого бюджета для закупки товара для wildberries.</p><p dir="auto">Наше правительство, пока сидит на нефти и газе, вряд ли поймет, что пора бы дать льготы всем, кто желает развивать производство внутри страны.</p><p dir="auto">Поэтому 99 процентов товаров будет продолжать ввозится из других стран, просто список их слегка изменится из-за санкций.</p><p dir="auto">Китай в этом списке наш друг, товарищ и брат номер один, не факт, что так думают сами китайцы, но продавать нам товары они будут с удовольствием. Тем более, тема с прямым поиском поставщика избавляет нас от посредников и денежных трат на их участие в процессе.</p><p dir="auto">В теории.</p><p dir="auto"><br></p><p dir="auto">На практике, провести закупку без участия посредника получается все реже, так как возникают новые проблемы конкретно с покупателями из России. В основном, при оплате товара.</p><p dir="auto">Из-за санкций, многие системы оплаты стали для россиян недоступны.</p><p dir="auto">Если на том же <a href="https://s.click.aliexpress.com/e/_DlS9TB9?bz=500*500" target="_blank"><strong>Aliexpress.com</strong></a><strong>, </strong>ты еще можешь заказать товары для личного пользования и оплатить их картой, то при оплате товара на оптовом сайте типа <a href="https://www.alibaba.com/showroom/mens-sex-underwear.html?cps=54ju36ks" target="_blank"><strong>Alibaba.com</strong></a></p><p dir="auto">уже возникнут проблемы. А точнее, ты не сможешь оплатить даже образец продукции, используя простые методы.</p><p dir="auto">По-крайней мере, так было на момент написания этого урока.</p><p dir="auto"><br></p><p dir="auto">Я пользуюсь картой другого человека, оформленной в Казахстане. И проблемы исчезают. Это к вопросу о том, что для Китая важнее. Дружба или деньги. Видимо, все же деньги, так как оборот торговли с Америкой намного превышает наши скромные объемы. А кто платит, тот и музыку заказывает.</p><p dir="auto">Для полноценного закупа приличной партии товара для продажи на вайлдберриз, лучше и вовсе воспользоваться прямой оплатой в юанях от посредника к производителю. Swift, bank transfer и т.д. - квест в нескольких частях с разным геймплеем и изменяющимися концовками. Так что, если ничего в ближайшее время не поменяется, то для непосредственной оплаты товара для продажи на wildberries, все же стоит воспользоваться услугами агента.</p><p dir="auto">О них мы поговорим отдельно, пока лишь скажу, что у одного посредника можно сразу заказать оплату, проверку и доставку товара в Россию.</p><p dir="auto"><br></p><p dir="auto">В проверке производителя, если собираетесь работать в долгую, точно нет ничего плохого. Походят, пофоткают для тебя, здорово же.</p><p dir="auto">Про проверку товара перед отправкой - отдельный разговор, у меня и моих знакомых такого не случалось, но в интернете полно историй о том, что людям в итоге приходило совсем не то, что они ожидали или в совершенно убогом качестве. Так что на первый раз можно и нужно проверить груз, потом уже, когда заказы у одного и того же поставщика будут идти с регулярностью, можно забить на этот момент.</p><p dir="auto">До первых косяков.</p><p dir="auto"><br></p><p dir="auto">Везти товар из Китая для продажи на wildberries можно любыми способами, в белую, серую, черную. Как душа попросит.</p><p dir="auto">Нужно рассматривать каждый случай в частности, если партия небольшая, есть варианты намутить документ в России или он не требуется - то везите в серую. Карго вариант.</p><p dir="auto">Логистических компаний - уйма. Загрузят в машину, ввезут через Казахстан. Вообще не проблема.</p><p dir="auto">А с сертификатами соответствия разберетесь отдельно.</p><p dir="auto">Если же на товар, кроме отказного письма, вообще ничего не нужно - точно карго автомобилем. Быстро, удобно, не дорого.</p><p dir="auto"><br></p><p dir="auto">Если партия измеряется в пределах от одного контейнера до бесконечного их количества -тут уже стоит задуматься о нормальной, человеческой схеме.</p><p dir="auto">С растаможкой, положенными документами и так далее. Морем, железной дорогой. Дольше, дороже, но без форс-мажоров обычно.</p><p dir="auto">Хотя, где их не бывает?</p><p dir="auto"><br></p><p dir="auto">А так, механизм закупки товаров для торговли на вайлдберриз довольно простой.</p><p dir="auto">Заходите на <a href="https://www.alibaba.com/showroom/mens-sex-underwear.html?cps=54ju36ks" target="_blank">Alibaba.com</a> если хочется повыбирать самому, либо заказываете услугу по поиску конкретного товара и производителя у посредника.</p><p dir="auto">Те пользуются не <a href="https://www.alibaba.com/showroom/mens-sex-underwear.html?cps=54ju36ks" target="_blank">Alibaba.com</a>, а 1688.com, внутренним китайским сайтом для торговли. Я пытался и сам там лазать, цены поприятнее, но мой мозг взрывался через пару минут еще на главной страницы. Там нет никакого другого языка, кроме китайского, а от иероглифов глаз начинает дергаться очень быстро.</p><p dir="auto">Так что это для любителей острых ощущений, я обхожусь Alibaba.com, там есть и производители, и торговые компании. Можно найти любой товар и заказать образцы.</p><p dir="auto">Я бы советовал отобрать 3-5 поставщиков и потратить немного денег на образцы. Да, цены на доставку там будут бешеные, это не Aliexpress.com, но лучше узнать заранее, что к тебе могут привезти контейнером.</p><p dir="auto"><br></p><p dir="auto">Иногда я пользуюсь таким лайфхаком, так как зачастую похожие товары производят несколько производств, можно найти похожий на интересующий нас товар на Aliexpress.com, спокойно оплатить его без лишних трат на доставку и оценить примерное качество. Примерное, так как материалы у разных производителей могут отличаться, но все же лучше, чем ничего. Еще вариант - объяснить китайцам на Alibaba.com про косяки с оплатой из России и узнать, не продается ли их товар на Aliexpress.com.</p><p dir="auto">Чтобы посмотреть образцы побыстрее и сделать полноценный оптовый заказ товара для перепродажи на wildberries.</p><p dir="auto">Так же можно воспользоваться посредниками, с которыми собираетесь работать в перспективе. Они оплатят образцы, их привезут на склад в Китае, а дальше они уже придумают, как доставить образцы в Россию.</p><p dir="auto"><br></p><p dir="auto">Чтобы понять, почему я так мудрю - приведу пример.</p><p dir="auto">Те товары, которыми я торгую - стоят от 2 до 50 долларов. Даже если я ищу нового поставщика и набираю у него много образцов, я все равно трачу на сами образцы очень мало. Некоторые производители и вовсе отдают образцы бесплатно. А вот стоимость доставки что одного товара ценой 2 доллара, что целого вороха образцов - будет не меньше 100-200 долларов.</p><p dir="auto">Жирновато, не правда ли? Особенно, если хочется посмотреть товары не у одного производителя. Поэтому и приходится свозить все образцы на склад посредника, чтобы потом отправить все вместе. Или искать товар на Aliexpress.com, чтобы заплатить только пару долларов за товар, минуя катастрофический счет за доставку.</p><p dir="auto"><br></p><p dir="auto">При хорошем заказе, китайцы сделают любую кастомизацию, то есть пришьют товару бирку с твоим логотипом, разместят его на товаре, упаковке, сделают любые необходимые надписи, могут и вообще лично для тебя товар начать производить. Им все равно. Есть идея и деньги? Отлично, будут производить одежду для единорогов. Как скажешь.</p><p dir="auto"><br></p><p dir="auto">Товар для продажи на wildberries могут прислать сразу в индивидуальной упаковке с лого, а могут в обычной упаковке, отправив индивидуальную с той же поставке. Чтобы перепаковать товар уже в России и избежать возможного повреждения, а заодно и проверить качество груза.</p><p dir="auto"><br></p><p dir="auto">Общаясь с китайцами, помните, что менталитет у них отличается от нашего. Я очень бесился от того, что они задают каждый мелочный вопрос отдельно, хотя можно было бы вообще обойтись без них. Если у тебя по-английскому двойка, в Алибабе есть встроенный переводчик, так что общий язык найдешь. Формируй сразу широкий запрос, чтобы избавиться от длительной беседы.</p><p dir="auto">Составь шаблон запроса, что-то вроде:</p><p dir="auto">"Здравствуйте. Меня заинтересовал этот и этот товар. Сколько будет цена за единицу при заказе 100, 500 и 1000 штук? Посчитайте без услуг логистики, мой агент заберет товар самовывозом с производства. Если у товара есть разные размеры или цвета, то приведите цену для тех же значений для каждой конкретной модели. Спасибо".</p><p dir="auto"><br></p><p dir="auto">Но тут ты быстро схватишь, пару часов мало продуктивного общения и накидается такая вступительная фраза, что система зависнет. Лучше использовать обозначение вопросов цифрами, чтобы совсем в дотошного поиграть. Я имею в вижу:</p><p dir="auto"><br></p><p dir="auto">"Здравствуйте. Меня заинтересовал этот и этот товар.</p><ol dir="auto"><li>Сколько будет цена за единицу при заказе 100, 500 и 1000 штук?</li><li>Посчитайте без услуг логистики, мой агент заберет товар самовывозом с производства.</li><li>Если у товара есть разные размеры или цвета, то приведите цену для тех же значений для каждой конкретной модели.</li></ol><p dir="auto">Спасибо."</p><p dir="auto"><br></p><p dir="auto">Общий процесс заказа, от выбора товара, запроса образцов до отправки оптового груза и его доставки, может сильно затянутся.</p><p dir="auto">Держи в голове, что придется подождать. Запомни примерное время, чтобы не возникло недоразумений при дозаказе.</p><p dir="auto">Когда товар на вайлдберриз уже кончился, а новый где-то бороздит моря и океаны.</p><p dir="auto">С агентами тоже бывает не все гладко, особенно это касается менеджеров, которые больше делают вид, что работают, чем и в правду заняты делом. Контролируйте на первых порах всех и везде, напоминайте о себе письмами, звонками, никто не будет шевелиться, если ты и сам болт подзабьешь, в надежде на ответственность других людей.</p><p dir="auto">Наемные работники могут прекрасно ковырять в носу за твои деньги.</p><p dir="auto">В целом, как и в любом другом деле, первый раз страшно, а потом, как по маслу.</p><p dir="auto">Давайте подведем итог, суммируем по пунктам и закончим.</p><p dir="auto">Список действий при закупке товара из Китая без посредников.</p><p dir="auto">Выбор товара для вайлдберриз</p><p dir="auto">Сайты для поиска товара:</p><p dir="auto"><a href="https://www.alibaba.com/showroom/mens-sex-underwear.html?cps=54ju36ks" target="_blank"><strong>Alibaba.com</strong></a></p><p dir="auto"><strong>Taobao.com</strong></p><p dir="auto"><strong>1688.com</strong></p><p dir="auto">Ищем сами или даем задание посредникам.</p><p dir="auto">Если сами на <a href="https://www.alibaba.com/showroom/mens-sex-underwear.html?cps=54ju36ks" target="_blank">Алибабе</a>, то интересуют нас <strong>manufacturers, </strong>то есть производители. Ищем тех, кто работает долго, имеет статус<strong> verified supplier, </strong>приличную сумму транзакций и высокий рейтинг.</p><p dir="auto">Переписка с производителем товара для wildberries</p><p dir="auto">Выбираем несколько производителей товара для вайлдберриз, делаем одинаковый письменный запрос по цене. В <a href="https://www.alibaba.com/showroom/mens-sex-underwear.html?cps=54ju36ks" target="_blank">Алибабе</a> есть встроенный переводчик. Запрашиваем образцы товаров, дальше либо выкупаете их через агента, либо сами, используя не российские карты. Есть и другие способы, не поленитесь погуглить. Если брать образцы там и платить бешеное бабло за доставку душит жаба, ищем похожий товар на <strong>Aliexpress.com </strong>за адекватную цену и ждем.</p><p dir="auto">Получаем образцы товара для вайлдберриз,</p><p dir="auto">определяемся с производителем.</p><p dir="auto">Образцы у тебя, либо от них было решено отказаться.</p><p dir="auto">Пора определяться с героем твоего товарного романа и уточнять детали заказа. Точное количество, цена, логотипы, упаковка - обсуждаем все вопросы.</p><p dir="auto">Если закуп и доставка через посредника - общение происходит через него, если без посредника - придется немного напрячься.</p><p dir="auto">По доставке, китайцы иногда предлагают свои цены на доставку до города в России. И они, в отличие от цен на доставку образцов, могут быть существенно ниже, чем предлагают посредники. Тут каждый решает сам.</p><p dir="auto">Я возил и так, и так. Пока без проблем. Один из поставщиков у меня вообще лапочка, он делает все под ключ, а в добавок каждый раз присылает новые образцы товаров, чтобы я посмотрел и дозаказал что-то новенькое. Но это исключение, а не правило.</p><p dir="auto">Бюрократия</p><p dir="auto">Дальше пошло-поехало решалово с оплатой, документами, доставкой, комиссиями посредникам и прочее безумие.</p><p dir="auto">После оплаты, агент посредника, если он есть, контролирует произведенный товар на складе, следит за его упаковкой и погрузкой и дает добро на отправку в Россию.</p><p dir="auto">Хэппи энд</p><p dir="auto">Ты получаешь великолепный товар, молниеносно начинаешь продажи на вайлдберриз, дозаказываешь еще, расширяешь ассортимент и живешь долго и счастливо.</p><p dir="auto"><br></p><p dir="auto"><br></p><p dir="auto"><br></p><p dir="auto"><br></p></div><div class="ql-clipboard" contenteditable="true" tabindex="-1" bis_skin_checked="1"></div><div id="_tl_link_tooltip" class="tl_link_tooltip" bis_skin_checked="1"></div><div id="_tl_tooltip" class="tl_tooltip" bis_skin_checked="1">
+            <div class="buttons" bis_skin_checked="1">
+              <span class="button_hover"></span>
+              <span class="button_group"><!--
+             --><button id="_bold_button"></button><!--
+             --><button id="_italic_button"></button><!--
+             --><button id="_link_button"></button><!--
+           --></span><!--
+           --><span class="button_group"><!--
+             --><button id="_header_button"></button><!--
+             --><button id="_subheader_button"></button><!--
+             --><button id="_quote_button"></button><!--
+           --></span>
+            </div>
+            <div class="prompt" bis_skin_checked="1">
+              <span class="close"></span>
+              <div class="prompt_input_wrap" bis_skin_checked="1"><input type="url" class="prompt_input"></div>
+            </div>
+          </div><div id="_tl_blocks" class="tl_blocks" bis_skin_checked="1">
+            <div class="buttons" bis_skin_checked="1">
+              <button id="_image_button"></button><!--
+           --><button id="_embed_button"></button>
+            </div>
+          </div></article>
+          
+          
+          
+          <aside class="tl_article_buttons">
+            <div class="account account_top" bis_skin_checked="1"></div>
+            <button id="_edit_button" class="button edit_button">Edit</button><!--
+         --><button id="_publish_button" class="button publish_button">Publish</button>
+            <div class="account account_bottom" bis_skin_checked="1"></div>
+            <div id="_error_msg" class="error_msg" bis_skin_checked="1"></div>
+          </aside>
+        </main>
+      </div>
+    </div>
+    <div id="_tl_alerts" class="tl_alerts" bis_skin_checked="1"></div>
+    
+    <script>var T={"apiUrl":"https:\/\/edit.telegra.ph","datetime":1677136785,"pageId":"7be8c40e142d7bf91adcc","editable":true};(function(){var b=document.querySelector('time');if(b&&T.datetime){var a=new Date(1E3*T.datetime),d='January February March April May June July August September October November December'.split(' ')[a.getMonth()],c=a.getDate();b.innerText=d+' '+(10>c?'0':'')+c+', '+a.getFullYear()}})();</script>
+    <script src="./04_files/jquery.min.js"></script>
+    <script src="./04_files/jquery.selection.min.js"></script>
+    <script src="./04_files/autosize.min.js"></script>
+    <script src="./04_files/load-image.all.min.js"></script>
+    <script src="./04_files/quill.min.js"></script>
+    <script src="./04_files/core.min.js"></script>
+    <script async="" src="./04_files/_websync_"></script>
+  
+</body></html>

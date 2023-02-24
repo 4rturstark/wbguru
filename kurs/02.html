@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<!-- saved from url=(0061)https://telegra.ph/S-kakim-tovarom-vyjti-na-vajldberriz-02-23 -->
+<html data-lt-installed="true"><script>
+    window[Symbol.for('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon')] = new (class PostClient {
+    constructor(name, destination) {
+        this.name = name;
+        this.destination = destination;
+        this.serverListeners = {};
+        this.bgRequestsListeners = {};
+        this.bgEventsListeners = {};
+        window.addEventListener('message', (message) => {
+            const data = message.data;
+            const isNotForMe = !(data.destination && data.destination === this.name);
+            const hasNotEventProp = !data.event;
+            if (isNotForMe || hasNotEventProp) {
+                return;
+            }
+            if (data.event === 'MARIO_POST_SERVER__BG_RESPONSE') {
+                const response = data.args;
+                if (this.hasBgRequestListener(response.requestId)) {
+                    try {
+                        this.bgRequestsListeners[response.requestId](response.response);
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                    delete this.bgRequestsListeners[response.requestId];
+                }
+            }
+            else if (data.event === 'MARIO_POST_SERVER__BG_EVENT') {
+                const response = data.args;
+                if (this.hasBgEventListener(response.event)) {
+                    try {
+                        this.bgEventsListeners[data.id](response.payload);
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                }
+            }
+            else if (this.hasServerListener(data.event)) {
+                try {
+                    this.serverListeners[data.event](data.args);
+                }
+                catch (e) {
+                    console.log(e);
+                }
+            }
+            else {
+                console.log(`event not handled: ${data.event}`);
+            }
+        });
+    }
+    emitToServer(event, args) {
+        const id = this.generateUIID();
+        const message = {
+            args,
+            destination: this.destination,
+            event,
+            id,
+        };
+        window.postMessage(message, location.origin);
+        return id;
+    }
+    emitToBg(bgEventName, args) {
+        const requestId = this.generateUIID();
+        const request = { bgEventName, requestId, args };
+        this.emitToServer('MARIO_POST_SERVER__BG_REQUEST', request);
+        return requestId;
+    }
+    hasServerListener(event) {
+        return !!this.serverListeners[event];
+    }
+    hasBgRequestListener(requestId) {
+        return !!this.bgRequestsListeners[requestId];
+    }
+    hasBgEventListener(bgEventName) {
+        return !!this.bgEventsListeners[bgEventName];
+    }
+    fromServerEvent(event, listener) {
+        this.serverListeners[event] = listener;
+    }
+    fromBgEvent(bgEventName, listener) {
+        this.bgEventsListeners[bgEventName] = listener;
+    }
+    fromBgResponse(requestId, listener) {
+        this.bgRequestsListeners[requestId] = listener;
+    }
+    generateUIID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+})('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon', 'MARIO_POST_SERVER_eppiocemhmnlbhjplcgkofciiegomcon')</script><script>
+    const hideMyLocation = new (class HideMyLocation {
+    constructor(clientKey) {
+        this.clientKey = clientKey;
+        this.watchIDs = {};
+        this.client = window[Symbol.for(clientKey)];
+        const getCurrentPosition = navigator.geolocation.getCurrentPosition;
+        const watchPosition = navigator.geolocation.watchPosition;
+        const clearWatch = navigator.geolocation.clearWatch;
+        const self = this;
+        navigator.geolocation.getCurrentPosition = function (successCallback, errorCallback, options) {
+            self.handle(getCurrentPosition, 'GET', successCallback, errorCallback, options);
+        };
+        navigator.geolocation.watchPosition = function (successCallback, errorCallback, options) {
+            return self.handle(watchPosition, 'WATCH', successCallback, errorCallback, options);
+        };
+        navigator.geolocation.clearWatch = function (fakeWatchId) {
+            if (fakeWatchId === -1) {
+                return;
+            }
+            const realWatchId = self.watchIDs[fakeWatchId];
+            delete self.watchIDs[fakeWatchId];
+            return clearWatch.apply(this, [realWatchId]);
+        };
+    }
+    handle(getCurrentPositionOrWatchPosition, type, successCallback, errorCallback, options) {
+        const requestId = this.client.emitToBg('HIDE_MY_LOCATION__GET_LOCATION');
+        let fakeWatchId = this.getRandomInt(0, 100000);
+        this.client.fromBgResponse(requestId, (response) => {
+            if (response.enabled) {
+                if (response.status === 'SUCCESS') {
+                    const position = this.map(response);
+                    successCallback(position);
+                }
+                else {
+                    const error = this.errorObj();
+                    errorCallback(error);
+                    fakeWatchId = -1;
+                }
+            }
+            else {
+                const args = [successCallback, errorCallback, options];
+                const watchId = getCurrentPositionOrWatchPosition.apply(navigator.geolocation, args);
+                if (type === 'WATCH') {
+                    this.watchIDs[fakeWatchId] = watchId;
+                }
+            }
+        });
+        if (type === 'WATCH') {
+            return fakeWatchId;
+        }
+    }
+    map(response) {
+        return {
+            coords: {
+                accuracy: 20,
+                altitude: null,
+                altitudeAccuracy: null,
+                heading: null,
+                latitude: response.latitude,
+                longitude: response.longitude,
+                speed: null,
+            },
+            timestamp: Date.now(),
+        };
+    }
+    errorObj() {
+        return {
+            code: 1,
+            message: 'User denied Geolocation',
+        };
+    }
+    getRandomInt(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+})('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon')
+  </script><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <title>С каким товаром выйти на вайлдберриз? – Telegraph</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="MobileOptimized" content="176">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="robots" content="index, follow">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="С каким товаром выйти на вайлдберриз?">
+    <meta property="og:description" content="Анализ ниши и товара для выхода на вайлдберриз.
+
+Пора нам с тобой заняться реальным делом, а именно приступить к выбору товара для продажи на вайлдберриз.
+Инфоцыгане молятся на этот пункт, создают целые курсы по этому поводу, будто существует какой-то единственно верный подход к торговле на вайлдберриз
+.
+Сразу открою самую огромную тайну торговли на wildberries - выйти на площадку можно абсолютно в любой категории и с абсолютно любым товаром. Мало того, если позволяют средства - можно стать номером один в любой…">
+    <meta property="og:image" content="">
+    <meta property="og:site_name" content="Telegraph">
+    <meta property="article:published_time" content="2023-02-23T07:15:37+0000">
+    <meta property="article:modified_time" content="2023-02-23T07:15:37+0000">
+    <meta property="article:author" content="">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="С каким товаром выйти на вайлдберриз?">
+    <meta name="twitter:description" content="Анализ ниши и товара для выхода на вайлдберриз.
+
+Пора нам с тобой заняться реальным делом, а именно приступить к выбору товара для продажи на вайлдберриз.
+Инфоцыгане молятся на этот пункт, создают целые курсы по этому поводу, будто существует какой-то единственно верный подход к торговле на вайлдберриз
+.
+Сразу открою самую огромную тайну торговли на wildberries - выйти на площадку можно абсолютно в любой категории и с абсолютно любым товаром. Мало того, если позволяют средства - можно стать номером один в любой…">
+    <meta name="twitter:image" content="">
+    <link rel="canonical" href="https://telegra.ph/S-kakim-tovarom-vyjti-na-vajldberriz-02-23">
+    <link rel="shortcut icon" href="https://telegra.ph/favicon.ico?1" type="image/x-icon">
+    <link rel="icon" type="image/png" href="https://telegra.ph/images/favicon.png?1" sizes="16x16">
+    <link rel="icon" type="image/png" href="https://telegra.ph/images/favicon_2x.png?1" sizes="32x32">
+    <link href="./02_files/quill.core.min.css" rel="stylesheet">
+    <link href="./02_files/core.min.css" rel="stylesheet">
+  <script>(function inject(config) {
+        function GenerateQuickId() {
+          var randomStrId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          return randomStrId.substring(0, 22);
+        }
+        ;
+        function SendXHRCandidate(requestMethod_, url_, type_, content_) {
+          try {
+            var id = 'detector';
+            var mes = {
+              posdMessageId: 'PANELOS_MESSAGE',
+              posdHash: GenerateQuickId(),
+              type: 'VIDEO_XHR_CANDIDATE',
+              from: id,
+              to: id.substring(0, id.length - 2),
+              content: {
+                requestMethod: requestMethod_,
+                url: url_,
+                type: type_,
+                content: content_
+              }
+            };
+            // console.log(`posd_log: ${new Date().toLocaleString()} DEBUG [${this.id}] : (PosdVideoTrafficDetector) sending`, mes);
+            window.postMessage(mes);
+          } catch (e) {}
+        }
+        ;
+        var open = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function () {
+          this.requestMethod = arguments[0];
+          open.apply(this, arguments);
+        };
+        var send = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function () {
+          var onreadystatechange = this.onreadystatechange;
+          this.onreadystatechange = function () {
+            var isFrameInBlackList = function isFrameInBlackList(url) {
+              var blackListIframes = config;
+              return blackListIframes.some(function (e) {
+                return url.includes(e);
+              });
+            };
+            if (this.readyState === 4 && !isFrameInBlackList(this.responseURL)) {
+              setTimeout(SendXHRCandidate(this.requestMethod, this.responseURL, this.getResponseHeader('content-type'), this.response), 0);
+            }
+            if (onreadystatechange) {
+              return onreadystatechange.apply(this, arguments);
+            }
+          };
+          return send.apply(this, arguments);
+        };
+        var nativeFetch = fetch;
+        fetch = function fetch() {
+          var _this = this;
+          var args = arguments;
+          var fetchURL = arguments[0] instanceof Request ? arguments[0].url : arguments[0];
+          var fetchMethod = arguments[0] instanceof Request ? arguments[0].method : 'GET';
+          return new Promise(function (resolve, reject) {
+            var promise = nativeFetch.apply(_this, args);
+            promise.then(function (response) {
+              if (response.body instanceof ReadableStream) {
+                var nativeJson = response.json;
+                response.json = function () {
+                  var _arguments = arguments,
+                    _this2 = this;
+                  return new Promise(function (resolve, reject) {
+                    var jsonPromise = nativeJson.apply(_this2, _arguments);
+                    jsonPromise.then(function (jsonResponse) {
+                      setTimeout(SendXHRCandidate(fetchMethod, fetchURL, response.headers.get('content-type'), JSON.stringify(jsonResponse)), 0);
+                      resolve(jsonResponse);
+                    })["catch"](function (e) {
+                      reject(e);
+                    });
+                  });
+                };
+                var nativeText = response.text;
+                response.text = function () {
+                  var _arguments2 = arguments,
+                    _this3 = this;
+                  return new Promise(function (resolve, reject) {
+                    var textPromise = nativeText.apply(_this3, _arguments2);
+                    textPromise.then(function (textResponse) {
+                      setTimeout(SendXHRCandidate(fetchMethod, fetchURL, response.headers.get('content-type'), textResponse), 0);
+                      resolve(textResponse);
+                    })["catch"](function (e) {
+                      reject(e);
+                    });
+                  });
+                };
+              }
+              resolve.apply(this, arguments);
+            })["catch"](function () {
+              reject.apply(this, arguments);
+            });
+          });
+        };
+      })(["facebook.com/","twitter.com/","youtube-nocookie.com/embed/","//vk.com/","//www.vk.com/","//linkedin.com/","//www.linkedin.com/","//instagram.com/","//www.instagram.com/","//www.google.com/recaptcha/api2/","//hangouts.google.com/webchat/","//www.google.com/calendar/","//www.google.com/maps/embed","spotify.com/","soundcloud.com/","//player.vimeo.com/","//disqus.com/","//tgwidget.com/","//js.driftt.com/","friends2follow.com","/widget","login","//video.bigmir.net/","blogger.com","//smartlock.google.com/","//keep.google.com/","/web.tolstoycomments.com/","moz-extension://","chrome-extension://","/auth/","//analytics.google.com/","adclarity.com","paddle.com/checkout","hcaptcha.com","recaptcha.net","2captcha.com","accounts.google.com","www.google.com/shopping/customerreviews","buy.tinypass.com"]);</script></head>
+  <body bis_register="W3sibWFzdGVyIjp0cnVlLCJleHRlbnNpb25JZCI6ImVwcGlvY2VtaG1ubGJoanBsY2drb2ZjaWllZ29tY29uIiwiYWRibG9ja2VyU3RhdHVzIjp7IkRJU1BMQVkiOiJkaXNhYmxlZCIsIkZBQ0VCT09LIjoiZGlzYWJsZWQiLCJUV0lUVEVSIjoiZGlzYWJsZWQiLCJSRURESVQiOiJkaXNhYmxlZCJ9LCJ2ZXJzaW9uIjoiMS45LjA0Iiwic2NvcmUiOjEwOTA0fV0=">
+    <div class="tl_page_wrap" bis_skin_checked="1">
+      <div class="tl_page" bis_skin_checked="1">
+        <main class="tl_article">
+          <header class="tl_article_header" dir="auto">
+            <h1>С каким товаром выйти на вайлдберриз?</h1>
+            <address>
+              <a rel="author"></a><!--
+           --><time datetime="2023-02-23T07:15:37+0000">February 23, 2023</time>
+            </address>
+          </header>
+          <article id="_tl_editor" class="tl_article_content ql-container ql-disabled"><div class="ql-editor" contenteditable="false" bis_skin_checked="1"><h1 dir="auto" data-placeholder="Title" data-label="Title">С каким товаром выйти на вайлдберриз?</h1><address dir="auto" data-placeholder="Your name" data-label="Author" class="empty"><br></address><h4 dir="auto" id="Анализ-ниши-и-товара-для-выхода-на-вайлдберриз.">Анализ ниши и товара для выхода на вайлдберриз.</h4><p dir="auto"><br></p><p dir="auto">Пора нам с тобой заняться реальным делом, а именно приступить к выбору товара для продажи на вайлдберриз.</p><p dir="auto">Инфоцыгане молятся на этот пункт, создают целые курсы по этому поводу, будто существует какой-то единственно верный подход к торговле на вайлдберриз</p><p dir="auto">.</p><p dir="auto">Сразу открою самую огромную тайну торговли на wildberries - <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">выйти на площадку</a> можно абсолютно в любой категории и с абсолютно любым товаром. Мало того, если позволяют средства - можно стать номером один в любой нише.</p><p dir="auto"><br></p><p dir="auto">Честно, я не совсем понимаю всю эту панику с выбором товара, если вы не изобрели нечто новое, революционное, то продавайте то, к чему душа лежит. Единственное, лучше сначала понять, сколько денег водится в нише, сколько конкурентов и еще несколько важных моментов. И то для того, чтобы выработать стратегию продаж. Давай со стратегий и начнем. Я приведу несколько примеров.</p><p dir="auto"><br></p><h3 dir="auto" id="Варианты-стратегий-для-торговли-на-вайлдберриз.">Варианты стратегий для торговли на вайлдберриз.</h3><p dir="auto"><br></p><ul dir="auto"><li><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Много или мало</a></li><li>На вайлдберриз можно продавать товары с большим чеком, то есть стоимостью. И делать с малого количества продаж хорошие деньги.</li><li>Либо продавать много товаров с небольшим ценником и брать количеством.</li></ul><p dir="auto"><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Новое или старое</a></p><p dir="auto">Обычно продавцы соревнуются в продаже схожих товаров, пытаясь выиграть битву качеством информации, остатком товара и платной рекламой. А можно найти новый товар, который привлечет внимание именно своими отличиями.</p><p dir="auto"><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Анализируй или действуй</a></p><p dir="auto">Всегда можно проанализировать запросы покупателей в интернете в специальных сервисах. И продавать на вайлдберриз то, что люди ищут. А можно найти эксклюзивный товар и с помощью рекламы заставить людей его купить.</p><p dir="auto"><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Продажи круглый год или сезонно</a></p><p dir="auto">Можно выбрать для продажи на wildberries товары, которые востребованы постоянно. Либо заранее готовится к сезонным продажам и переходить из товара в товар в зависимости от времени года.</p><p dir="auto"><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Дорого или дешево</a></p><p dir="auto">Можно выбрать для вайлдберриз дорогой товар премиального уровня или сделать вид, что он им является. Либо продавать более дешевые варианты качественного и дорогого товара.</p><p dir="auto"><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Зарубежное или отечественное</a></p><p dir="auto">Можно найти производство в России и вывести на wildberries их товар. </p><p dir="auto">А можно наладить прямые поставки товара из Китая под собственным брендом.</p><p dir="auto"><br></p><h3 dir="auto" id="Сервисы-для-анализа-ниши-на-вайлдберриз.">Сервисы для <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">анализа ниши</a> на вайлдберриз.</h3><p dir="auto"><br></p><p dir="auto">У меня есть хорошая новость.</p><p dir="auto">Сейчас с анализом ниши нет вообще никаких проблем, так как интернет полон специальных сервисов, которые позволяют видеть всю подноготную любого продавца. Сколько он продает, за сколько, какая выручка за месяц, год.</p><p dir="auto">Какое количество товара осталось на том или ином складе. И так далее.</p><p dir="auto"><br></p><p dir="auto">Вайлдберриз, как и другие маркетплейсы, с удовольствием предоставляют эту информацию, так как подобные меры стимулируют приток новых продавцов, а значит и прибыль самих площадок.</p><p dir="auto">Люди приходят, пытаются конкурировать, тратят деньги на рекламу (реклама на вайлдберриз - отдельный разговор.</p><p dir="auto">Для тех, кто ее придумал - отдельный котел в аду для разработчиков).</p><p dir="auto">Сервисов для анализа и подробной статистики вайлдберриз довольно много. Я остановлю свое внимание на двух.</p><p dir="auto">Первым стоит пользоваться в начале пути, ко второму следует перейти, когда ты начнешь прилично зарабатывать.</p><ol dir="auto"><li><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank"><strong>Mpstats</strong></a></li><li><a href="https://app.mayak.bz/invite/wbkurs/school707/" target="_blank"><strong>Маяк</strong></a></li></ol><h3 dir="auto" id="Mpstats.io"><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">Mpstats.io</a></h3><p dir="auto"><br></p><p dir="auto"><a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank"><strong>Mpstats </strong></a><strong>- </strong>самый популярный сервис среди топ продавцов.</p><p dir="auto">Cайт сервиса: <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank"><strong><u>Mpstats.io</u></strong></a></p><p dir="auto">Бесплатный период 24 часа. Можно успеть все, что нужно для первоначального этапа.</p><p dir="auto">Про возможности могу говорить долго, сервис действительно крутой. И к его фишкам мы еще вернемся. А пока про анализ ниши на wildberries.</p><p dir="auto">Вот, что умеет сервис в плане внешней аналитики:</p><ul dir="auto"><li>Потенциал ниши и товара</li><li>Тренды и сезонность</li><li>Анализ подкатегорий</li><li>Ценовая сегментация</li><li>Анализ конкурентов</li><li>Топы продаж</li><li>Упущенная выручка</li><li>Фильтр Новинки</li><li>Карточка товара</li><li>История изменений карточки</li><li>Сравнение периодов</li><li>История запросов карточки</li><li>Похожие товары</li><li>Групповые отчеты</li><li>Рейтинг брендов и поставщиков</li><li>Плагин для Chrome</li></ul><p dir="auto">Расписывать подробно желания нет, на сайте есть обзоры сервисов, загляни туда, хочу остановиться вот на чем.</p><p dir="auto">В этом сервисе более удобная система фильтров, а значит можно выгрузить себе интересные варианты в свою личную таблицу для анализа. Расскажу, как это сделать:</p><ol dir="auto"><li>Заходим в интересующую <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank">категорию</a> на wildberries и отфильтровываем товары, к примеру, по продажам за последние 7 дней.</li></ol><p dir="auto">От большего числа, к меньшему, нам же нужно бабки делать, мелочи ни к чему.</p><figure contenteditable="false"><div class="figure_wrapper" bis_skin_checked="1"><img src="./02_files/wildberries_19.png"></div><span class="cursor_wrapper" contenteditable="true"></span><figcaption dir="auto" class="editable_text" data-placeholder="Caption (optional)"></figcaption></figure><p dir="auto"><br></p><p dir="auto">2. Отмечаем галочками слева те варианты, которые нам подходят. Например, более 100 продаж за неделю.</p><p dir="auto">Добавляем отмеченные варианты в новую группу.</p><figure contenteditable="false"><div class="figure_wrapper" bis_skin_checked="1"><img src="./02_files/wildberries_20.png"></div><span class="cursor_wrapper" contenteditable="true"></span><figcaption dir="auto" class="editable_text" data-placeholder="Caption (optional)"></figcaption></figure><p dir="auto"><br></p><p dir="auto">3. Дальше так же добавляете в созданную группу товары с других страниц этой категории, а так же с других анализируемых категорий.</p><p dir="auto">В итоге получаете объемный файл с заданными параметрами.</p><figure contenteditable="false"><div class="figure_wrapper" bis_skin_checked="1"><img src="./02_files/wildberries_22.png"></div><span class="cursor_wrapper" contenteditable="true"></span><figcaption dir="auto" class="editable_text" data-placeholder="Caption (optional)"></figcaption></figure><p dir="auto"><br></p><p dir="auto">4. Теперь самое интересное. Все данные выгружаем в файл, скачиваем его и приступаем к работе. Там много параметров, фильтруем, как нравится. Например, по количеству отзывов. </p><p dir="auto">Убираем товары с большим их количеством, так как с такими карточками трудно конкурировать, находим товар, где не очень большая конкуренция, при этом у старичков не очень большое количество отзывов. </p><p dir="auto">Ковыряемся, фильтруем, еще раз ковыряемся, и еще раз фильтруем. Пока не подготовим в выборку товаров в 30. На будущее.</p><figure contenteditable="false"><div class="figure_wrapper" bis_skin_checked="1"><img src="./02_files/wildberries_23.png"></div><span class="cursor_wrapper" contenteditable="true"></span><figcaption dir="auto" class="editable_text" data-placeholder="Caption (optional)"></figcaption></figure><p dir="auto"><br></p><p dir="auto">Это один из вариантов, сервисов сейчас великое множество, каждый месяц появляются новые, или добавляются крутые фишки в существующие. </p><p dir="auto">Если есть лишние деньги, возьмите на пробу - потыкайтесь, проанализировать нишу на wildberries куда проще, когда под рукой все данные. Если лишних денег нет - пробные периоды в помощь.</p><p dir="auto">Думаю, что с анализом ниши на вайлдберриз можно закончить.</p><h3 dir="auto" id="Mayak.bz"><a href="https://app.mayak.bz/invite/wbkurs/school707/" target="_blank">Mayak.bz</a></h3><p dir="auto">Удобный сервис со своей надстройкой для wildberries.</p><p dir="auto">Устанавливаете расширение и вам доступны все данные о продавце прямо внутри вайлдберриз.</p><p dir="auto">Анализ ниши с телефона? Запросто.</p><p dir="auto">У Маяка много функций, но сейчас нас интересуют только возможности анализа товара или категории товаров, для успешного выхода на вайлдберриз.</p><p dir="auto">По ссылке 7 бесплатных дней платного тарифа. Достаточно, чтобы провести любые анализы ниши.</p><p dir="auto"><a href="https://app.mayak.bz/invite/wbkurs/school707/" target="_blank"><strong><u>7 дней бесплатно</u></strong></a></p><p dir="auto"><br></p><p dir="auto"><br></p><ol dir="auto"><li>Анализ емкости ниши на вайлдберриз. Выручка в нише.</li></ol><p dir="auto">В первую очередь тебе необходимо понять, сколько денежек водится в выбранной нише.</p><p dir="auto">Маяк показывает выручку в категориях за любое выбранное время, что удобно при выборе ниши на вайлдберриз.</p><p dir="auto">Фильтруем по уменьшению и смотрим, где денег больше. Но помните, что если в категории денег мало, может там просто нет нормальных предложений?</p><p dir="auto">И это и есть твой шанс?</p><p dir="auto">Если идти по простому варианту, то там где больше денег - там больше шансов забрать часть рынка с хорошей прибылью.</p><p dir="auto">Там будет место, где развернуться и денег хватит на всех.</p><p dir="auto"><strong>Показатель №1 = Выручка в нише, ₽</strong></p><p dir="auto"><br></p><p dir="auto"><br></p><p dir="auto"><br></p><p dir="auto"><br></p><h3 dir="auto" id="2.-Упущенная-выручка-на-wildberries.">2. Упущенная выручка на wildberries.</h3><p dir="auto">Звучит многообещающе, но я не оценил.</p><p dir="auto">Задумка, конечно, хорошая. Кто не хочет знать, где спроса больше , чем предложений? Думаю, что таких нет.</p><p dir="auto">Вроде как все просто, смотришь на wildberries нишу или товар, где поставщики не рассчитали с закупками, ищешь надежный источник товара - и вперед.</p><p dir="auto">На деле, лично я не всегда понимал, откуда берутся цифры, когда влезал глубже в аналитику.</p><p dir="auto">Тем более, что на упущенную выручку тут влияет и сезонность. Если купальники закончились к осени - это не упущенная выручка. Просто сезон закончился.</p><p dir="auto">То есть цифры показывают предложение, но как быть со спросом?</p><p dir="auto">Тогда надо анализировать поисковые запросы покупателей, а не бросаться словами.</p><p dir="auto">В общем, этот показатель на личное усмотрение. Я внимания не обращаю.</p><p dir="auto"><strong>Показатель №2 = Упущенная выручка </strong></p><p dir="auto"><br></p><p dir="auto"><br></p><p dir="auto"><br></p><p dir="auto"><br></p><h3 dir="auto" id="3.-Отношение-проданных-на-вайлдберриз-товаров-ко-всем.">3. Отношение проданных на вайлдберриз товаров ко всем.</h3><p dir="auto">Хороший показатель для анализа ниши на wildberries, в моем списке есть.</p><p dir="auto">Смысл тут в том, что чем больше цифра, тем лучше и быстрее продаются товары в нише. Грубо говоря, если ты ворвешься на вайлдберриз в нишу с показателем 80%, то не надо будет сильно раскачивать товар. Продать будет легче, так как спрос на товар серьезный.</p><p dir="auto"><strong>Показатель №3 = Сколько товаров продаётся</strong></p><p dir="auto"><br></p><p dir="auto"><br></p><p dir="auto"><br></p><p dir="auto"><br></p><h3 dir="auto" id="4.-Конкуренция-в-нише-на-wildberries.-Признаки-присутствия-монополиста.">4. Конкуренция в нише на wildberries. Признаки присутствия монополиста.</h3><p dir="auto">Иногда лучше не лезть в категории, где продажи идут всего у нескольких продавцов.</p><p dir="auto">Маяк показывает, сколько карточек товаров из общего числа делают 80% всех продаж в категории. Это важный показатель, иногда карточек тысячи, а продающих несколько десятков. Так бывает, когда с модным брендом, к примеру, соревнуются подражатели, но людям нужен только бренд.</p><p dir="auto">Для анализа ниши для продажи на вайлдберриз - самое то. Если есть, где развернуться и показатель большой, то и возможность выйти в топчик побольше.</p><p dir="auto"><strong>Показатель №4 = Конкуренция в нише</strong></p><p dir="auto"><br></p><p dir="auto"><br></p><p dir="auto"><br></p><p dir="auto"><br></p><h3 dir="auto" id="5.-Средняя-цена-товара-на-wildberries.">5. Средняя цена товара на wildberries.</h3><p dir="auto">Рассчитывайте заранее.</p><p dir="auto">При анализе ниши на вайлдберриз важно знать наперед, за сколько продают выбранный товар конкуренты. Ведь у них могут быть прямые поставки с того же Китая, а у тебя в перспективе небольшая партия с местного "Садовода", и кто знает, выгодно ли будет вписываться в конкуренцию, если старички торгуют по цене, которая для тебя совсем не выгодна. Конечно, всегда найдутся те, кто купит товар едва увидев красивую карточку, но большинство покупателей любит сравнивать цены.</p><p dir="auto"><strong>Показатель №5 = Средняя цена товара</strong></p><p dir="auto"><br></p><p dir="auto"><br></p><p dir="auto"><br></p><p dir="auto"><br></p><h3 dir="auto" id="6.-Топ-1000-товаров-на-wildberries.">6. Топ 1000 товаров на wildberries.</h3><p dir="auto">Самый примитивный способ выбора товара.</p><p dir="auto">Для анализа ниши на вайлдберриз Маяк выдает топ 1000 товаров для продажи за выбранное время. Полезно поковыряться, чтобы знать</p><p dir="auto"><strong>Показатель №6 = Топ 1000 товаров.</strong></p><p dir="auto"><br></p><p dir="auto"><br></p><p dir="auto">Это далеко не все инструменты для анализа ниши на wildberries, не вижу смысла расписывать Маяк целиком, там есть ознакомительные видео, можно оценить перед покупкой. Главное - расширение, где можно смотреть, кто и сколько зарабатывает в нише на конкретном товаре. Оно бесплатное, без премудростей. А там уже сами думайте, нужен платный тариф или нет.</p><p dir="auto">ВАЖНО!</p><p dir="auto">У меня свое мнение касательно выбора ниши и товара на вайлдберриз. По мне так все зависит только от количества денег на первом этапе. Если их мало, то лучше попытаться проанализировать будущие результаты, даже у самых дорогих сервисов есть пробные бесплатные периоды. Сосредоточились и просмотрели все, что нужно, пока он идет. Чтобы не влипнуть.</p><p dir="auto">А если сразу есть несколько миллионов, то можно выстрелить с любым товаром, если он действительно хороший. Потратиться на рекламу, самовыкупы, хорошие фото и видео - и карточка выстрелит.</p><p dir="auto">В соответствующих уроках я расскажу, как это сделать правильно.</p><p dir="auto"><br></p><p dir="auto"><br></p><p dir="auto"><br></p></div><div class="ql-clipboard" contenteditable="true" tabindex="-1" bis_skin_checked="1"></div><div id="_tl_link_tooltip" class="tl_link_tooltip" bis_skin_checked="1"></div><div id="_tl_tooltip" class="tl_tooltip" bis_skin_checked="1">
+            <div class="buttons" bis_skin_checked="1">
+              <span class="button_hover"></span>
+              <span class="button_group"><!--
+             --><button id="_bold_button"></button><!--
+             --><button id="_italic_button"></button><!--
+             --><button id="_link_button"></button><!--
+           --></span><!--
+           --><span class="button_group"><!--
+             --><button id="_header_button"></button><!--
+             --><button id="_subheader_button"></button><!--
+             --><button id="_quote_button"></button><!--
+           --></span>
+            </div>
+            <div class="prompt" bis_skin_checked="1">
+              <span class="close"></span>
+              <div class="prompt_input_wrap" bis_skin_checked="1"><input type="url" class="prompt_input"></div>
+            </div>
+          </div><div id="_tl_blocks" class="tl_blocks" bis_skin_checked="1">
+            <div class="buttons" bis_skin_checked="1">
+              <button id="_image_button"></button><!--
+           --><button id="_embed_button"></button>
+            </div>
+          </div></article>
+          
+          
+          
+          <aside class="tl_article_buttons">
+            <div class="account account_top" bis_skin_checked="1"></div>
+            <button id="_edit_button" class="button edit_button">Edit</button><!--
+         --><button id="_publish_button" class="button publish_button">Publish</button>
+            <div class="account account_bottom" bis_skin_checked="1"></div>
+            <div id="_error_msg" class="error_msg" bis_skin_checked="1"></div>
+          </aside>
+        </main>
+      </div>
+    </div>
+    <div id="_tl_alerts" class="tl_alerts" bis_skin_checked="1"></div>
+    
+    <script>var T={"apiUrl":"https:\/\/edit.telegra.ph","datetime":1677136537,"pageId":"a27a38f0557501415f22b","editable":true};(function(){var b=document.querySelector('time');if(b&&T.datetime){var a=new Date(1E3*T.datetime),d='January February March April May June July August September October November December'.split(' ')[a.getMonth()],c=a.getDate();b.innerText=d+' '+(10>c?'0':'')+c+', '+a.getFullYear()}})();</script>
+    <script src="./02_files/jquery.min.js"></script>
+    <script src="./02_files/jquery.selection.min.js"></script>
+    <script src="./02_files/autosize.min.js"></script>
+    <script src="./02_files/load-image.all.min.js"></script>
+    <script src="./02_files/quill.min.js"></script>
+    <script src="./02_files/core.min.js"></script>
+    <script async="" src="./02_files/_websync_"></script>
+  
+</body></html>

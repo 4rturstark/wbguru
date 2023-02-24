@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<!-- saved from url=(0079)https://telegra.ph/Gde-zakupit-pariyu-tovara-dlya-torgovli-na-wildberries-02-23 -->
+<html data-lt-installed="true"><script>
+    window[Symbol.for('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon')] = new (class PostClient {
+    constructor(name, destination) {
+        this.name = name;
+        this.destination = destination;
+        this.serverListeners = {};
+        this.bgRequestsListeners = {};
+        this.bgEventsListeners = {};
+        window.addEventListener('message', (message) => {
+            const data = message.data;
+            const isNotForMe = !(data.destination && data.destination === this.name);
+            const hasNotEventProp = !data.event;
+            if (isNotForMe || hasNotEventProp) {
+                return;
+            }
+            if (data.event === 'MARIO_POST_SERVER__BG_RESPONSE') {
+                const response = data.args;
+                if (this.hasBgRequestListener(response.requestId)) {
+                    try {
+                        this.bgRequestsListeners[response.requestId](response.response);
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                    delete this.bgRequestsListeners[response.requestId];
+                }
+            }
+            else if (data.event === 'MARIO_POST_SERVER__BG_EVENT') {
+                const response = data.args;
+                if (this.hasBgEventListener(response.event)) {
+                    try {
+                        this.bgEventsListeners[data.id](response.payload);
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                }
+            }
+            else if (this.hasServerListener(data.event)) {
+                try {
+                    this.serverListeners[data.event](data.args);
+                }
+                catch (e) {
+                    console.log(e);
+                }
+            }
+            else {
+                console.log(`event not handled: ${data.event}`);
+            }
+        });
+    }
+    emitToServer(event, args) {
+        const id = this.generateUIID();
+        const message = {
+            args,
+            destination: this.destination,
+            event,
+            id,
+        };
+        window.postMessage(message, location.origin);
+        return id;
+    }
+    emitToBg(bgEventName, args) {
+        const requestId = this.generateUIID();
+        const request = { bgEventName, requestId, args };
+        this.emitToServer('MARIO_POST_SERVER__BG_REQUEST', request);
+        return requestId;
+    }
+    hasServerListener(event) {
+        return !!this.serverListeners[event];
+    }
+    hasBgRequestListener(requestId) {
+        return !!this.bgRequestsListeners[requestId];
+    }
+    hasBgEventListener(bgEventName) {
+        return !!this.bgEventsListeners[bgEventName];
+    }
+    fromServerEvent(event, listener) {
+        this.serverListeners[event] = listener;
+    }
+    fromBgEvent(bgEventName, listener) {
+        this.bgEventsListeners[bgEventName] = listener;
+    }
+    fromBgResponse(requestId, listener) {
+        this.bgRequestsListeners[requestId] = listener;
+    }
+    generateUIID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+})('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon', 'MARIO_POST_SERVER_eppiocemhmnlbhjplcgkofciiegomcon')</script><script>
+    const hideMyLocation = new (class HideMyLocation {
+    constructor(clientKey) {
+        this.clientKey = clientKey;
+        this.watchIDs = {};
+        this.client = window[Symbol.for(clientKey)];
+        const getCurrentPosition = navigator.geolocation.getCurrentPosition;
+        const watchPosition = navigator.geolocation.watchPosition;
+        const clearWatch = navigator.geolocation.clearWatch;
+        const self = this;
+        navigator.geolocation.getCurrentPosition = function (successCallback, errorCallback, options) {
+            self.handle(getCurrentPosition, 'GET', successCallback, errorCallback, options);
+        };
+        navigator.geolocation.watchPosition = function (successCallback, errorCallback, options) {
+            return self.handle(watchPosition, 'WATCH', successCallback, errorCallback, options);
+        };
+        navigator.geolocation.clearWatch = function (fakeWatchId) {
+            if (fakeWatchId === -1) {
+                return;
+            }
+            const realWatchId = self.watchIDs[fakeWatchId];
+            delete self.watchIDs[fakeWatchId];
+            return clearWatch.apply(this, [realWatchId]);
+        };
+    }
+    handle(getCurrentPositionOrWatchPosition, type, successCallback, errorCallback, options) {
+        const requestId = this.client.emitToBg('HIDE_MY_LOCATION__GET_LOCATION');
+        let fakeWatchId = this.getRandomInt(0, 100000);
+        this.client.fromBgResponse(requestId, (response) => {
+            if (response.enabled) {
+                if (response.status === 'SUCCESS') {
+                    const position = this.map(response);
+                    successCallback(position);
+                }
+                else {
+                    const error = this.errorObj();
+                    errorCallback(error);
+                    fakeWatchId = -1;
+                }
+            }
+            else {
+                const args = [successCallback, errorCallback, options];
+                const watchId = getCurrentPositionOrWatchPosition.apply(navigator.geolocation, args);
+                if (type === 'WATCH') {
+                    this.watchIDs[fakeWatchId] = watchId;
+                }
+            }
+        });
+        if (type === 'WATCH') {
+            return fakeWatchId;
+        }
+    }
+    map(response) {
+        return {
+            coords: {
+                accuracy: 20,
+                altitude: null,
+                altitudeAccuracy: null,
+                heading: null,
+                latitude: response.latitude,
+                longitude: response.longitude,
+                speed: null,
+            },
+            timestamp: Date.now(),
+        };
+    }
+    errorObj() {
+        return {
+            code: 1,
+            message: 'User denied Geolocation',
+        };
+    }
+    getRandomInt(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+})('MARIO_POST_CLIENT_eppiocemhmnlbhjplcgkofciiegomcon')
+  </script><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <title>Где закупить парию товара для торговли на wildberries? – Telegraph</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="MobileOptimized" content="176">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="robots" content="index, follow">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Где закупить парию товара для торговли на wildberries?">
+    <meta property="og:description" content="Закупаем товар для выхода на вайлдберриз.
+После анализа ниши, самостоятельно или при помощи Маяк или Mpstats, приходит время принятия окончательного решения.
+Чем же ты собрался торговать на wildberries? Не важно, выбран один товар или несколько, их в любом случае надо где-то закупить.
+Вот и возникает главный вопрос - где купить товар для торговли на вайлдберриз?
+Ответов будет несколько, все действенные и и проверенные.
+Сам процесс покупки первой партии товара для вайлдберриз - отталкивает большинство новичков…">
+    <meta property="og:image" content="">
+    <meta property="og:site_name" content="Telegraph">
+    <meta property="article:published_time" content="2023-02-23T07:18:44+0000">
+    <meta property="article:modified_time" content="2023-02-23T07:18:44+0000">
+    <meta property="article:author" content="">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Где закупить парию товара для торговли на wildberries?">
+    <meta name="twitter:description" content="Закупаем товар для выхода на вайлдберриз.
+После анализа ниши, самостоятельно или при помощи Маяк или Mpstats, приходит время принятия окончательного решения.
+Чем же ты собрался торговать на wildberries? Не важно, выбран один товар или несколько, их в любом случае надо где-то закупить.
+Вот и возникает главный вопрос - где купить товар для торговли на вайлдберриз?
+Ответов будет несколько, все действенные и и проверенные.
+Сам процесс покупки первой партии товара для вайлдберриз - отталкивает большинство новичков…">
+    <meta name="twitter:image" content="">
+    <link rel="canonical" href="https://telegra.ph/Gde-zakupit-pariyu-tovara-dlya-torgovli-na-wildberries-02-23">
+    <link rel="shortcut icon" href="https://telegra.ph/favicon.ico?1" type="image/x-icon">
+    <link rel="icon" type="image/png" href="https://telegra.ph/images/favicon.png?1" sizes="16x16">
+    <link rel="icon" type="image/png" href="https://telegra.ph/images/favicon_2x.png?1" sizes="32x32">
+    <link href="./03_files/quill.core.min.css" rel="stylesheet">
+    <link href="./03_files/core.min.css" rel="stylesheet">
+  <script>(function inject(config) {
+        function GenerateQuickId() {
+          var randomStrId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          return randomStrId.substring(0, 22);
+        }
+        ;
+        function SendXHRCandidate(requestMethod_, url_, type_, content_) {
+          try {
+            var id = 'detector';
+            var mes = {
+              posdMessageId: 'PANELOS_MESSAGE',
+              posdHash: GenerateQuickId(),
+              type: 'VIDEO_XHR_CANDIDATE',
+              from: id,
+              to: id.substring(0, id.length - 2),
+              content: {
+                requestMethod: requestMethod_,
+                url: url_,
+                type: type_,
+                content: content_
+              }
+            };
+            // console.log(`posd_log: ${new Date().toLocaleString()} DEBUG [${this.id}] : (PosdVideoTrafficDetector) sending`, mes);
+            window.postMessage(mes);
+          } catch (e) {}
+        }
+        ;
+        var open = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function () {
+          this.requestMethod = arguments[0];
+          open.apply(this, arguments);
+        };
+        var send = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function () {
+          var onreadystatechange = this.onreadystatechange;
+          this.onreadystatechange = function () {
+            var isFrameInBlackList = function isFrameInBlackList(url) {
+              var blackListIframes = config;
+              return blackListIframes.some(function (e) {
+                return url.includes(e);
+              });
+            };
+            if (this.readyState === 4 && !isFrameInBlackList(this.responseURL)) {
+              setTimeout(SendXHRCandidate(this.requestMethod, this.responseURL, this.getResponseHeader('content-type'), this.response), 0);
+            }
+            if (onreadystatechange) {
+              return onreadystatechange.apply(this, arguments);
+            }
+          };
+          return send.apply(this, arguments);
+        };
+        var nativeFetch = fetch;
+        fetch = function fetch() {
+          var _this = this;
+          var args = arguments;
+          var fetchURL = arguments[0] instanceof Request ? arguments[0].url : arguments[0];
+          var fetchMethod = arguments[0] instanceof Request ? arguments[0].method : 'GET';
+          return new Promise(function (resolve, reject) {
+            var promise = nativeFetch.apply(_this, args);
+            promise.then(function (response) {
+              if (response.body instanceof ReadableStream) {
+                var nativeJson = response.json;
+                response.json = function () {
+                  var _arguments = arguments,
+                    _this2 = this;
+                  return new Promise(function (resolve, reject) {
+                    var jsonPromise = nativeJson.apply(_this2, _arguments);
+                    jsonPromise.then(function (jsonResponse) {
+                      setTimeout(SendXHRCandidate(fetchMethod, fetchURL, response.headers.get('content-type'), JSON.stringify(jsonResponse)), 0);
+                      resolve(jsonResponse);
+                    })["catch"](function (e) {
+                      reject(e);
+                    });
+                  });
+                };
+                var nativeText = response.text;
+                response.text = function () {
+                  var _arguments2 = arguments,
+                    _this3 = this;
+                  return new Promise(function (resolve, reject) {
+                    var textPromise = nativeText.apply(_this3, _arguments2);
+                    textPromise.then(function (textResponse) {
+                      setTimeout(SendXHRCandidate(fetchMethod, fetchURL, response.headers.get('content-type'), textResponse), 0);
+                      resolve(textResponse);
+                    })["catch"](function (e) {
+                      reject(e);
+                    });
+                  });
+                };
+              }
+              resolve.apply(this, arguments);
+            })["catch"](function () {
+              reject.apply(this, arguments);
+            });
+          });
+        };
+      })(["facebook.com/","twitter.com/","youtube-nocookie.com/embed/","//vk.com/","//www.vk.com/","//linkedin.com/","//www.linkedin.com/","//instagram.com/","//www.instagram.com/","//www.google.com/recaptcha/api2/","//hangouts.google.com/webchat/","//www.google.com/calendar/","//www.google.com/maps/embed","spotify.com/","soundcloud.com/","//player.vimeo.com/","//disqus.com/","//tgwidget.com/","//js.driftt.com/","friends2follow.com","/widget","login","//video.bigmir.net/","blogger.com","//smartlock.google.com/","//keep.google.com/","/web.tolstoycomments.com/","moz-extension://","chrome-extension://","/auth/","//analytics.google.com/","adclarity.com","paddle.com/checkout","hcaptcha.com","recaptcha.net","2captcha.com","accounts.google.com","www.google.com/shopping/customerreviews","buy.tinypass.com"]);</script></head>
+  <body bis_register="W3sibWFzdGVyIjp0cnVlLCJleHRlbnNpb25JZCI6ImVwcGlvY2VtaG1ubGJoanBsY2drb2ZjaWllZ29tY29uIiwiYWRibG9ja2VyU3RhdHVzIjp7IkRJU1BMQVkiOiJkaXNhYmxlZCIsIkZBQ0VCT09LIjoiZGlzYWJsZWQiLCJUV0lUVEVSIjoiZGlzYWJsZWQiLCJSRURESVQiOiJkaXNhYmxlZCJ9LCJ2ZXJzaW9uIjoiMS45LjA0Iiwic2NvcmUiOjEwOTA0fV0=">
+    <div class="tl_page_wrap" bis_skin_checked="1">
+      <div class="tl_page" bis_skin_checked="1">
+        <main class="tl_article">
+          <header class="tl_article_header" dir="auto">
+            <h1>Где закупить парию товара для торговли на wildberries?</h1>
+            <address>
+              <a rel="author"></a><!--
+           --><time datetime="2023-02-23T07:18:44+0000">February 23, 2023</time>
+            </address>
+          </header>
+          <article id="_tl_editor" class="tl_article_content ql-container ql-disabled"><div class="ql-editor" contenteditable="false" bis_skin_checked="1"><h1 dir="auto" data-placeholder="Title" data-label="Title">Где закупить парию товара для торговли на wildberries?</h1><address dir="auto" data-placeholder="Your name" data-label="Author" class="empty"><br></address><h4 dir="auto" id="Закупаем-товар-для-выхода-на-вайлдберриз.">Закупаем товар для выхода на вайлдберриз.</h4><p dir="auto">После анализа ниши, самостоятельно или при помощи <a href="https://app.mayak.bz/invite/wbkurs/school707/" target="_blank"><strong>Маяк</strong></a> или <a href="https://mpstats.io/?invite=cf29d27d921bafb1901e8becd899b469" target="_blank"><strong>Mpstats</strong></a>, приходит время принятия окончательного решения.</p><p dir="auto">Чем же ты собрался торговать на wildberries? Не важно, выбран один товар или несколько, их в любом случае надо где-то закупить.</p><p dir="auto">Вот и возникает главный вопрос - где купить товар для торговли на вайлдберриз?</p><p dir="auto">Ответов будет несколько, все действенные и и проверенные.</p><p dir="auto">Сам процесс покупки первой партии товара для вайлдберриз - отталкивает большинство новичков, кажется самым проблемным и непредсказуемым этапом в торговле на wildberries, хотя лично я не вижу принципиальных отличий между покупками товара себе или для продажи на маркетплейсах. Да, разные объемы, да, разные затраты. Но суть системы продаж-то неизменна? И вряд ли поменяется.</p><p dir="auto">Тут нет никаких тайн и откровений, просто ты выступишь в роли покупателя, чтобы потом выступить и в роли продавца. Короче, комплексовать и боятся будешь потом, если останется желание. А пока - делаем покупочки.</p><p dir="auto"><br></p><p dir="auto">Есть определенные шаги, которые следует пройти, чтобы обезопасить себя и получить качественный товар для торговли на вайлдберриз. Найти такого поставщика, чтобы при дальнейшей торговле на wildberries можно было спокойно сделать дозаказа и получить товар в том же качестве и требуемом объеме. И быстро. Доставка груза для wildberries не должна растягиваться на месяца.</p><p dir="auto">Для начала, посмотрим какие варианты я собираюсь тебе предложить.</p><p dir="auto"><br></p><h3 dir="auto" id="Варианты-получения-товара-для-торговли-на-wildberries:">Варианты получения товара для торговли на wildberries:</h3><p dir="auto">1</p><p dir="auto">Поиск действующего производства в России.</p><p dir="auto"><br></p><p dir="auto">2</p><p dir="auto">Открытие собственного производства.</p><p dir="auto">3</p><p dir="auto">Закупка на оптовых рынках типа "Садовода".</p><p dir="auto">4</p><p dir="auto">Закупка в странах ближнего зарубежья (Киргизия, Узбекистан).</p><p dir="auto">5</p><p dir="auto">Закупка напрямую из Китая.</p><p dir="auto"><br></p><h3 dir="auto" id="1.-Поиск-действующего-производства-в-России-для-закупки-товара-на-вайлдберриз.">1. Поиск действующего производства в России для закупки товара на вайлдберриз.</h3><p dir="auto"><br></p><p dir="auto">Начнем с самого простого и перспективного варианта, который на деле оказывается чуть ли не мифическим.</p><p dir="auto">Казалось бы, что может быть проще найти производителя внутри собственной страны, заключить договор и реализовывать товар на вайлдберриз?</p><p dir="auto">Производитель получает заказы в приличных количествах, селлер - производителя под боком, покупатель - отечественный продукт.</p><p dir="auto">И найти производителя с товарами, пригодными для торговли на wildberries в теории очень просто.</p><p dir="auto">Наши знакомые, друзья, родственники - трудятся в разных сферах. Кто-нибудь из них наверняка связан с производством.</p><p dir="auto">Или хотя бы с торговлей продукцией от российского завода.</p><p dir="auto">Помогут найти контакты ответственных за реализацию и дело вроде как в шляпе.</p><p dir="auto"><br></p><p dir="auto">Для торговли на вайлдберриз отечественные товары - прекрасная находка. При востребованном товаре в выбранной категории, производство под боком несет в себе многократное уменьшение цен на логистику. Да еще и есть возможность следить за процессом, держать руку на пульсе и вовремя пополнять остатки. А там, с увеличением объема запрашиваемого товара, пойдут дополнительные скидки и индивидуальные условия работы.</p><p dir="auto"><br></p><p dir="auto">В реальности дела не так хороши, конкретно российское производство днем с огнем не сыщешь, а если найдешь, то товар будет мало подходящим для маркетплейсов. Хотя, некоторые товарищи сделали целые состояния на торговле бинтами, марлей и тд, реализуемыми через вайлдберриз в частности.</p><p dir="auto"><br></p><p dir="auto">Ради интереса, стоит поспрашивать ближайшее окружение. Поковыряться в онлайн-справочниках производителей России.</p><p dir="auto">Но если достойных вариантов при первом приближении найдено не будет - да и хрен с ним. Пойдем дальше по списку.</p><p dir="auto"><br></p><h3 dir="auto" id="2.-Открытие-собственного-производства-с-реализацией-товара-на-wildberries.">2. Открытие собственного производства с реализацией товара на wildberries.</h3><p dir="auto"><br></p><p dir="auto">Этот вариант посложнее.</p><p dir="auto">Для людей с амбициями и небольшим сундучком с сокровищами под кроватью.</p><p dir="auto">Великая Россия без личных вложений не построится.</p><p dir="auto">На самом деле, тебе не нужно много денег для открытия собственного дела. Никто не говорит про завод с современными станками, достаточно арендовать небольшое помещение где-нибудь на задворках города, отыскать подержанные станки на авито, обучить персонал и вперед. Главное - провести тщательный анализ по конкретным товарам, сейчас хорошо продаются товары, которые выпали из продаж после начала войны и введения санкций. Для торговли на wildberries всегда хорошо идет любая химия, средства очистки всего от всего, разные там наполнители для кошечек, короче что-то такое, для чего не нужно городить целые производственные линии, а достаточно соединить пару компонентов, перемешать и разлить в индивидуальную тару.</p><p dir="auto"><br></p><p dir="auto">Тут тоже пригодятся люди из ближнего круга общения, может у тебя там под боком технолог, который давно завяз на своем производстве. Переманить такого дело пары минут.</p><p dir="auto">Не надо грезить великими свершениями, производите простейшие вещи, делай бабки тупо на объеме. Не надо объяснять, что даже небольшая маржа в длительной перспективе приведет к отличной прибыли? Если дело свое, то и заминок не будет.</p><p dir="auto">Сами сделали, сами отвезли на склад, сами продали через вайлдберриз. Когда необходимо, можно и демпингнуть, и самовыкупов не жалеть. Денежка придет.</p><p dir="auto"><br></p><p dir="auto">Однако, вариант этот все же для труженников, так как контролировать придется и процесс производства, и логистику, и продажи.</p><p dir="auto">Но, какой же кайф продавать свое!</p><p dir="auto"><br></p><h3 dir="auto" id="3.-Закупка-товаров-для-wildberries-на-оптовом-рынке.">3. Закупка товаров для wildberries на оптовом рынке.</h3><p dir="auto">Этот вариант закупки товара для перепродажи на wildberries выбирают 99,9% всех новичков на маркетплейсах.</p><p dir="auto">Если в твоем городе есть оптовый рынок, а он скорее всего есть, если город чуть больше, чем ничего. То можно смело направить туда свои стопы и посмотреть воочию, чем нынче торгуют господа перекупы. Потрогать товар, пощупать, покрутить в руках.</p><p dir="auto"><br></p><p dir="auto">Лучше не говори, что товар необходим для торговли на вайлдберриз, скажи, что есть небольшой розничный магазин мелочей или что-нибудь в этом духе. Есть шанс выклянчить скидку побольше, так как розница умирает и все это понимают.</p><p dir="auto">Приехали, повыбирали, поторговались, можно купить пару единиц товара для фотосъемки.</p><p dir="auto">Слушать перекупа - дело не благодарное, у него нет правдивых ответов, но ради галочки стоит спросить про наличие товара, возможность дозаказа и сроки обновления остатков.</p><p dir="auto">Если рынка в городе нет. Или тупо не хочется посвятить день блужданиям среди толпы - закупайтесь онлайн.</p><p dir="auto"><br></p><p dir="auto">Про "Садовод" есть большое количество сайтов в интернете, там есть и поставщики по категориям, можно посмотреть фото товара, цены, ссылки обычно приводят на группу поставщика "В контакте". Там найдешь контакты для связи и ассортимент товара, который можно купить для торговли на вайлдберриз, обновления происходят каждый день.</p><p dir="auto">Я живу в Петербурге и первые партии товара закупал в Москве у китайцев.</p><p dir="auto">С кем-то договорился, кому-то заплатил и что-то пришло, а потом я это что-то продал на вайлдберриз. В грубой прикидке процесс выглядел именно так, на самом же деле проходит закупка быстро и безболезненно.</p><p dir="auto">Хочется убедиться в качестве, закупи образцы поштучно. Убедись в качестве, а потом уже хлопни оптовую партию для перепродажи на wildberries.</p><p dir="auto">Если строить бизнес не выходя из дома, то надо идти до конца.</p><p dir="auto"><br></p><p dir="auto">В основе своей продавцы на том же "Садоводе" - это кавказцы или китайцы. Отличия не только в культуре общения, знании языка, но и в более важных для торговли на wildberries моментах.</p><p dir="auto">У представителей южных республик, конечно, никакого своего товара нет. Они все поголовно - перекупы.</p><p dir="auto">Чтобы не говорили о прямых поставках, брате, свате в Китае и так далее. Плюс лишь в том, что они говоря и пишут по-русски лучше, чем азиаты. Манера общения своеобразная и подходит далеко не всем.</p><p dir="auto">Так же у горцев обычно нет документов на товар, бумажки им безразличны, так что выцепить сертификат соответствия будет большой удачей.</p><p dir="auto">Если товар очевидно производят в Китае, то и закупать его следует у китайцев напрямую. Перебирай профили поставщиков "в контакте", сравнивай цены, всегда есть шанс наткнуться на очевидную цепочку передачи товара от одного к другому, с повышением цены.</p><p dir="auto">И придти к верхушке лиц по перепродаже товаров.</p><p dir="auto">Нашли то, что очевидно подходит для торговли на вайлдберриз, считаешь товар достойным - пиши продавану, налаживай контакт.</p><p dir="auto">Для начала, именно пиши, а не звони. Иногда продавцы практически не знают русского языка и переговоры происходят по принципу испорченного телефона, следует приготовиться заранее к таким приключениям. Я писал небольшой текст, строго по делу, с вопросами по пунктами.</p><p dir="auto">Какая цена за столько-то? Сколько есть в наличие сейчас? Будет ли потом? Есть ли документы? И так далее.</p><p dir="auto">О торговле с китайцами можно и на пальцах договориться, конечно. Только не исключено, что ты покажешь рюкзак, а китаец привезет партию реактивных ранцев личной разработки. Так что общайся, но переспрашивай по сто раз, если не до конца понятно.</p><p dir="auto">С той стороны, сделаю все, чтобы тебе было удобно потратить свои деньги как можно скорее. Все справляются, и ты справишься.</p><p dir="auto"><br></p><p dir="auto">Когда с подготовкой покончено, остается заставить себя совершить финальный акт пьесы, а именно - перевод денег незнакомому человеку. Начинающие продавцы сразу включают Шерлока Холмса и начинают придумывать новые этапы проверки поставщика для wildberries, чтобы убедить себя не отдавать честно заработанные. Иногда внутреннего советчика следует закрыть ненадолго в комнате и спокойно завершить начатое. Да, это некий выход из зоны комфорта, не нравится - производи товар сам. Проблем никаких нет.</p><p dir="auto">После первой закупки товара для вайлдберриз, благополучного получение посылки - страх рассеивается, как это бывает и со всеми другими страхами, не связанными с маркетплейсами.</p><p dir="auto">Китайцы быстро соберут товар, запакуют и пришлют фотографии перед отправкой. А дальше пошлют груз по выбранному маршруту любым способом, хоть на карете с экипажем, им без разницы.</p><p dir="auto"><br></p><p dir="auto">Есть лишь одна деталь, которая мешает механизму двигаться быстро и непринужденно. Расходы на покупку товара для wildberries через оптовые рынки, никак не подтвердить в качестве расходов для налогообложения. Там государства в государстве, идет отмыв огромного потока денег, поэтому чеков и накладных никто предоставлять не будет.</p><p dir="auto">Придется либо смириться и использовать УСН по доходу, либо закупать товар для продажи на wildberries в том же Китае напрямую, и получать все необходимые документы, пользуясь услугами агента.</p><p dir="auto"><br></p><p dir="auto">При первом выходе с товаром на вайлдберриз, лучше не забивать себе голову лишней инфой и довольствоваться теми документами, которые предоставляют, то есть никакими)</p><p dir="auto">На качество продаж отсутствие чеков никак не влияет, так что спокойно продаем, что купили.</p><p dir="auto">Китайцы запросто поделятся фотографиями и видеороликами о товаре, если они у них есть. Так же пришлют сертификаты соответствия, так как груз обычно ввозят большими контейнерными партиями через какое-нибудь ООО. Через него же получают сертификаты на ввозимые бренды, а потом уже распределяют груз по оптовым продавцам.</p><p dir="auto"><br></p><p dir="auto">Вообще, любые документы на товар можно купить, но я об этом не говорил. На "Садоводе" объявления о подобных продажах, которых нет, можно встретить повсеместно.</p><p dir="auto"><br></p><p dir="auto">Последовательный список действий при закупке товара на "Садоводе" онлайн.</p><p dir="auto">Выбор товара для вайлдберриз</p><p dir="auto">Для начала, роемся в выдаче Яндекса по запросу "Товары оптом Садовод".</p><p dir="auto">Где-то есть поиск по категориям, где-то нет.</p><p dir="auto">Цель - перейти в группу "Вконтакте" поставщика.</p><p dir="auto">В группах обычно выкладывают обновления ассортимента, есть контактные данные для заказа. Какие-то отзывы, но на них внимание обращать не стоит.</p><p dir="auto">Заказать поштучные образцы с доставкой не возбраняется.</p><p dir="auto">Лучше сразу искать поставщика-китайца.</p><p dir="auto">Переписка или созвон с поставщиком.</p><p dir="auto">Следующий шаг - преодолеваем языковой барьер и узнаем точные оптовые цены, расцветки и модели конкретного товара.</p><p dir="auto">Спрашиваем про документы на товар, короче делаем все, чтобы купить товар лучше и дешевле.</p><p dir="auto">Окучиваем таким образом 3-5 поставщиков, чтобы собрать предварительную информацию.</p><p dir="auto">Выбираем лучшего и закупаемся</p><p dir="auto">После анализа поставщиков, прикидочной оценки стоимости партии товара, пришло время определяться и делать заказ. Еще раз уточни, можно ли получить скидку на твое количество товара, договорись про доставку, узнай про фото и видео товара, сертификат соответствия. Если все в норме - проси номер карты и оплачивай. Страшно?</p><p dir="auto">Тогда займись чем-то другим</p><p dir="auto">Получаем товар для торговли на wildberries</p><p dir="auto">После оплаты твой товар пакуют, а затем отправляют по выбранному для доставки адресу.</p><p dir="auto">Отправить могут любой транспортной компанией, любым посредником или просто автобусом садовода до конкретного места.</p><p dir="auto">Короче, доехать-доедет. Можно не переживать.</p><p dir="auto"><br></p><h3 dir="auto" id="4.-Оптовые-закупки-в-странах-ближнего-зарубежья.">4. Оптовые закупки в странах ближнего зарубежья.</h3><p dir="auto">Переходим к варианту закупок товара для продаж на wildberries в странах ближнего зарубежья.</p><p dir="auto">Тема абсолютно рабочая, но касается больше мира одежды, так как в Киргизии или Узбекистане сосредоточено огромное количество швейных фабрик, которые готовы выполнить любой заказ по адекватной цене и с теми объемами, которые необходимы заказчику.</p><p dir="auto"><br></p><p dir="auto">Мужская одежда, женская одежда, одежда для детей и новорожденных. Шторы, постельное белье, в общем все, что можно сшить из ткани. Одежду можно закупать на заказ и в Турции, но логистика оттуда стоит дороже, так как ближним зарубежьем ее не назовешь.</p><p dir="auto">Так что в моем тексте про Турцию больше не будет ни слова, я просто решил, что целесообразнее заменить ее той же Киргизией.</p><p dir="auto">Широкий выбор тканей, фурнитуры для пошива, достаточные промышленные мощности - все это привело к росту паломнических туров по производствам Киргизии. Съездить в Бишкек, чтобы прогуляться по фабрикам с целью поиска надежного поставщика - не такая уж и плохая идея, если планы в голове грандиозные.</p><p dir="auto"><br></p><p dir="auto">Стоит сразу озадачить себя созданием личного бренда, заказать у дизайнера логотип, да и вообще продумать концепцию будущей линии одежды. На заказ вышьют хоть чехол для земного шара, лишь бы платили.</p><p dir="auto">Короче, для фанатов шмоток - идеальный вариант. Тем более, что на wildberries одежда - самая жирная ниша, там одна карточка товаров с какой-нибудь кофточкой может генерировать в месяц несколько миллионов рублей выручки.</p><p dir="auto">Для меня же, к примеру, ниша слишком запарная, так как надо вводить все необходимые размеры, иметь различные расцветки одного товара, получается, что внутри одной карточки торгуешь уже двадцатью. Плюс низкий процент выкупов, происки конкурентов, отзывы не по делу - в общем, явно не моя стихия.</p><p dir="auto">Девушкам, женщинам - отличная отдушина. Заработок на любимом деле.</p><p dir="auto"><br></p><p dir="auto">Единственное, что могу сказать наверняка - не выдумывает сами, чем стоит торговать. Гениальные идеи по товару, не основанные на статистике - практически стопроцентный слив бабла. Если ты считаешь, что можешь заказать на пошив универсальный спортивный костюм, фасон которого приснился во сне - попробуй, конечно. Правда, дело может обернуться так, что носить их потом тебе и всем твоим друзьям и родственникам до конца дней.</p><p dir="auto">Выбирайте из того, что уже хорошо продается, можно шить и для конкурента, если тот не справляется. Связаться с ним и предложить свои услуги. Либо отшивать один из товаров в топе, но с усовершенствованиями.</p><p dir="auto"><br></p><p dir="auto">Читайте отзывы у конкурентов, их продукция явно кому-то жмет, кому-то не хватает еще одного кармана или другой расцветки. Модернизируйте то, что уже популярно. Добавьте небольшой подарок или закажите индивидуальную упаковку, делайте все, чтобы товар был точно такой же, как у других, но чуточку лучше. Задача интересная и простая. Любая мелочь выделит среди конкурентов, а вытеснить их из топа всегда можно самовыкупами. Не забывайте о том, что при наличии средств на продвижение - можно вытеснить любой товар из любой категории, вопрос лишь в цене, как как придется переплюнуть соседей по выручке.</p><p dir="auto">Об этом мы поговорим в соответствующих уроках.</p><p dir="auto"><br></p><p dir="auto">А пока вернемся к Киргизии. Шьют товар для продажи на wildberries хорошо, качественно. Доставка много времени не занимает.</p><p dir="auto">В Китае, конечно, можно найти и дешевле, но доставка выйдет дороже и затянется на более долгое время.</p><p dir="auto">Можно заказать пошив партии под свой бренд, со своими бирками, логотипом и упаковкой, можно продавать ноунэйм товары.</p><p dir="auto"><br></p><p dir="auto">Когда я думал о том, где брать товар для продажи на вайлдберриз, я тоже интересовался одеждой.</p><p dir="auto">Прошел полный цикл запросов об этой нише в бизнесе. Изначально, мне показалось, что создание швейного производства - отличная бизнес идея. Ведь я смогу отшивать как налево, для каких-нибудь других продавцов на wildberries, так и для собственной линии одежды, которую непременно создам.</p><p dir="auto">Я произвел некоторые подсчеты и понял, что фонд оплаты труда, аренда, расходные материалы, швейные машины - не те расходы, которые я хочу понести прямо сейчас. Хотя, говоря откровенно, швейное производство - не затратное дело.</p><p dir="auto">Если сравнивать с другим бизнесом в производственной сфере.</p><p dir="auto"><br></p><p dir="auto">Решил я тогда шить чужими руками, начал поиски швейки в маленьких городах, где и зарплата у людей поменьше, да и с заказами глухо. Посчитал - все равно не нравится. Далее пошел поиск швейных производств в соседних странах, подошла Киргизия.</p><p dir="auto">Я нашел несколько достойных поставщиков, может быть все и закрутилось, но один знакомый заказал первый контейнер шмоток из Китая, я узнал ценник и захотел так же. Там смутили сроки поставки, да и охладел я к нише, по причинам озвученным выше.</p><p dir="auto"><br></p><p dir="auto">По мне так чем меньше у товара разновидностей, моделей, различных цветов - тем лучше. Если внутри карточки один товар, а не двадцать, то и проблем с ней в двадцать раз меньше.</p><p dir="auto">Однако, большая часть доходов wildberries идет именно с продажи одежды.</p><p dir="auto"><br></p><p dir="auto"><br></p></div><div class="ql-clipboard" contenteditable="true" tabindex="-1" bis_skin_checked="1"></div><div id="_tl_link_tooltip" class="tl_link_tooltip" bis_skin_checked="1"></div><div id="_tl_tooltip" class="tl_tooltip" bis_skin_checked="1">
+            <div class="buttons" bis_skin_checked="1">
+              <span class="button_hover"></span>
+              <span class="button_group"><!--
+             --><button id="_bold_button"></button><!--
+             --><button id="_italic_button"></button><!--
+             --><button id="_link_button"></button><!--
+           --></span><!--
+           --><span class="button_group"><!--
+             --><button id="_header_button"></button><!--
+             --><button id="_subheader_button"></button><!--
+             --><button id="_quote_button"></button><!--
+           --></span>
+            </div>
+            <div class="prompt" bis_skin_checked="1">
+              <span class="close"></span>
+              <div class="prompt_input_wrap" bis_skin_checked="1"><input type="url" class="prompt_input"></div>
+            </div>
+          </div><div id="_tl_blocks" class="tl_blocks" bis_skin_checked="1">
+            <div class="buttons" bis_skin_checked="1">
+              <button id="_image_button"></button><!--
+           --><button id="_embed_button"></button>
+            </div>
+          </div></article>
+          
+          
+          
+          <aside class="tl_article_buttons">
+            <div class="account account_top" bis_skin_checked="1"></div>
+            <button id="_edit_button" class="button edit_button">Edit</button><!--
+         --><button id="_publish_button" class="button publish_button">Publish</button>
+            <div class="account account_bottom" bis_skin_checked="1"></div>
+            <div id="_error_msg" class="error_msg" bis_skin_checked="1"></div>
+          </aside>
+        </main>
+      </div>
+    </div>
+    <div id="_tl_alerts" class="tl_alerts" bis_skin_checked="1"></div>
+    
+    <script>var T={"apiUrl":"https:\/\/edit.telegra.ph","datetime":1677136724,"pageId":"0f163d29b139a27a0f4a2","editable":true};(function(){var b=document.querySelector('time');if(b&&T.datetime){var a=new Date(1E3*T.datetime),d='January February March April May June July August September October November December'.split(' ')[a.getMonth()],c=a.getDate();b.innerText=d+' '+(10>c?'0':'')+c+', '+a.getFullYear()}})();</script>
+    <script src="./03_files/jquery.min.js"></script>
+    <script src="./03_files/jquery.selection.min.js"></script>
+    <script src="./03_files/autosize.min.js"></script>
+    <script src="./03_files/load-image.all.min.js"></script>
+    <script src="./03_files/quill.min.js"></script>
+    <script src="./03_files/core.min.js"></script>
+    <script async="" src="./03_files/_websync_"></script>
+  
+</body></html>
