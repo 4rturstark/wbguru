@@ -128,7 +128,6 @@ $(document).ready(function() {
     const terminal_password = "4uePoHGELqp8Gzck#IMv";
     const merchant_name = "IPKuchmistiy";
     const merchant_password = "4uePoHGELqp8Gzck#IMv";
-    const terminal_password = "4uePoHGELqp8Gzck#IMv";
     const params = {
       successUrl: "https://wb3.guru/kurs/",
       failUrl: "https://wb3.guru/error",
