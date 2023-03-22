@@ -123,8 +123,12 @@ $(document).ready(function() {
   });
 
   function impaya() {
-    const impaya_url = 'https://api-stage.impaya.ru/session/';
+    const impaya_url = 'https://api-stage.impaya.ru/session';
     const key = 'wb3.guru_3ds_qiwicontact';
+    const terminal_password = "4uePoHGELqp8Gzck#IMv";
+    const merchant_name = "IPKuchmistiy";
+    const merchant_password = "4uePoHGELqp8Gzck#IMv";
+    const terminal_password = "4uePoHGELqp8Gzck#IMv";
     const params = {
       successUrl: "https://wb3.guru/kurs/",
       failUrl: "https://wb3.guru/error",
@@ -132,12 +136,22 @@ $(document).ready(function() {
     }
     const register = {
       key,
+      terminal_password,
       "merchant_order_id": new Date().getTime(),
       "amount": 33 * 100,
       "type": "pay",
       "payment_type": "OneStep",
       "lifetime": 10000,
+      "credential": {
+        "login": "",
+        "password": "",
+        merchant_name,
+        merchant_password,
+        terminal_password
+      },
       "custom_params_raw": Object.keys(params).map(param => `${param}=${params[param]}`).join(';'),
+      "card_uid": "",
+      "action": "",
       "recurrent": true
     }
     $.ajax({
